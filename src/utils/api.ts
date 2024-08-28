@@ -39,7 +39,7 @@ function getEndingLink(ctx: NextPageContext | undefined): TRPCLink < AppRouter >
   });
 }
 const client = createWSClient({
-  url: 'ws://kara.starchaser.me:45021/',
+  url: 'wss://kara.starchaser.me:45021/',
 });
 return wsLink({
   client,
