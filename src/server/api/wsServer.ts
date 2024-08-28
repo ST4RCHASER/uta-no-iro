@@ -4,7 +4,7 @@ import { WebSocketServer } from 'ws';
 import { createTRPCContext } from './trpc';
 import { appRouter } from './root'
 const wss = new WebSocketServer({
-    port: 3001,
+    port: 45021,
 });
 const handler = applyWSSHandler({
     wss,
