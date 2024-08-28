@@ -1,4 +1,4 @@
-import { postRouter } from "@uta/server/api/routers/post";
+import { songRouter } from "@uta/server/api/routers/song";
 import { createCallerFactory, createTRPCRouter } from "@uta/server/api/trpc";
 
 /**
@@ -7,7 +7,7 @@ import { createCallerFactory, createTRPCRouter } from "@uta/server/api/trpc";
  * All routers added in /api/routers should be manually added here.
  */
 export const appRouter = createTRPCRouter({
-  post: postRouter,
+  songs: songRouter,
 });
 
 // export type definition of API

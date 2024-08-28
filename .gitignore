@@ -12,7 +12,7 @@
 /prisma/db.sqlite
 /prisma/db.sqlite-journal
 db.sqlite
-
+dist
 # next.js
 /.next/
 /out/
@@ -44,3 +44,4 @@ yarn-error.log*
 
 # idea files
 .idea
+certificates

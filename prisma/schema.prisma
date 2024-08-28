@@ -10,11 +10,19 @@ datasource db {
     url      = env("DATABASE_URL")
 }
 
-model Post {
+model SongQueue {
     id        Int      @id @default(autoincrement())
-    name      String
+    order     Int
+    data      String
     createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+    playedAt  DateTime?
+    deletedAt DateTime?
+}
 
-    @@index([name])
+model KV {
+    id        Int      @id @default(autoincrement())
+    key       String   @unique
+    value     String
+    createdAt DateTime @default(now())
+    deletedAt DateTime?
 }
