@@ -10,9 +10,27 @@ datasource db {
     url      = env("DATABASE_URL")
 }
 
+model Room {
+    id        String      @id @default(cuid())
+    code     String
+    config    String? 
+    states    String?
+    queues    SongQueue[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    deletedAt DateTime?
+
+    @@index([code])
+    @@unique([code, id])
+}
+
 model SongQueue {
     id        Int      @id @default(autoincrement())
     order     Int
+    roomId    String
+    room      Room     @relation(fields: [roomId], references: [id])
+    type      String
     data      String
     createdAt DateTime @default(now())
     playedAt  DateTime?
@@ -20,9 +38,11 @@ model SongQueue {
 }
 
 model KV {
-    id        Int      @id @default(autoincrement())
-    key       String   @unique
-    value     String
+    id        String      @id @default(cuid())
+    key       String    @unique
+    value     String?
     createdAt DateTime @default(now())
-    deletedAt DateTime?
+    updatedAt DateTime @updatedAt
+
+    @@index([key])
 }

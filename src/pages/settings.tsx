@@ -5,7 +5,8 @@ export function Monitor() {
 
   return (
     <>
-      <Layout title="Player" description="Full screen player here">
+      <Layout title="Settings" description="Customize your favor">
+
         test
       </Layout>
       </>

@@ -1,19 +1,20 @@
+/* eslint-disable */
 
 import { applyWSSHandler } from '@trpc/server/adapters/ws';
 import { WebSocketServer } from 'ws';
 import { createTRPCContext } from './trpc';
 import { appRouter } from './root'
+
 const wss = new WebSocketServer({
     port: 45021,
 });
 const handler = applyWSSHandler({
     wss,
     router: appRouter,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     createContext: createTRPCContext as any,
-    // Enable heartbeat messages to keep connection open (disabled by default)
     keepAlive: {
         enabled: true,
-        // server ping message interval in milliseconds
         pingMs: 3000,
         // connection is terminated if pong message is not received in this many milliseconds
         pongWaitMs: 5000,

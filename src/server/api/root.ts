@@ -1,5 +1,6 @@
 import { songRouter } from "@uta/server/api/routers/song";
 import { createCallerFactory, createTRPCRouter } from "@uta/server/api/trpc";
+import { roomRouter } from "./routers/room";
 
 /**
  * This is the primary router for your server.
@@ -8,6 +9,7 @@ import { createCallerFactory, createTRPCRouter } from "@uta/server/api/trpc";
  */
 export const appRouter = createTRPCRouter({
   songs: songRouter,
+  rooms: roomRouter
 });
 
 // export type definition of API

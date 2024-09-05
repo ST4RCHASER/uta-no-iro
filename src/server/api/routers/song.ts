@@ -1,26 +1,47 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { z } from "zod";
-// @ts-expect-error
+// @ts-expect-error - no types
 import youtubeSearch from 'youtube-search-api';
 import * as cheerio from 'cheerio';
+import langdetect from 'langdetect';
 
 import { createTRPCRouter, publicProcedure } from "@uta/server/api/trpc";
-import { YoutubeSearchResponse } from "@uta/types/yt.types";
 import { db } from "@uta/server/db";
 import { observable } from '@trpc/server/observable';
 import EventEmitter from "events";
+import type { YoutubeSearchResponse } from "@uta/server/types/yt.types";
 const ee = new EventEmitter();
 const cleanText = (text: string) => text.replace(/[\n\t]/g, '').trim()
-const getCurrentQueue = async () => {
-  const queue = await db.songQueue.findMany({
+
+const getRoomConfig = async (roomId: string) => { 
+  const room = await db.room.findFirst({
     where: {
-      deletedAt: null,
-      playedAt: null,
-    },
-    orderBy: {
-      order: 'asc'
+      id: roomId
     }
   })
-  return queue
+  if (!room) { 
+    throw new Error('Room not found')
+  }
+
+  return JSON.parse(room.config ?? '{}')
+}
+
+const saveConfig = async (roomId: string, config: any) => {
+  await db.room.update({
+    where: {
+      id: roomId
+    },
+    data: {
+      config: JSON.stringify({
+        ... await getRoomConfig(roomId),
+        ...config
+      })
+    }
+  })
 }
 
 export const songRouter = createTRPCRouter({
@@ -36,235 +57,151 @@ export const songRouter = createTRPCRouter({
         };
       });
     }
-  ),
-  //PLAYING PLAYED
-  updatePlayerState: publicProcedure.
-    input(z.string()).
-    mutation(async ({ input }) => {
-      await db.kV.upsert({
+    ),
+  broadcastPlayerCommand: publicProcedure
+    .input(z.object({ roomId: z.string(), cmd: z.string() }))
+    .mutation(async ({ input }) => {
+      const room = await db.room.findFirst({
         where: {
-          key: 'playerState'
-        },
-        create: {
-          key: 'playerState',
-          value: input
-        },
-        update: {
-          value: input
+          id: input.roomId
         }
       })
-    }),
-  broadcastPlayerCommand: publicProcedure
-    .input(z.string())
-    .mutation(async ({ input }) => {
-      await db.kV.upsert({
+      if (!room) { 
+        throw new Error('Room not found')
+      }
+      await db.room.update({
         where: {
-          key: 'playerCommand'
+          id: input.roomId
         },
-        create: {
-          key: 'playerCommand',
-          value: input
-        },
-        update: {
-          value: input
+        data: {
+          states: JSON.stringify({
+            ...JSON.parse(room.states ?? '{}'),
+            lastCommand: input.cmd
+          })
         }
       })
       ee.emit('cmd', input)
-      
+
       return input
     }),
-  getCurrentSong: publicProcedure
-    .query(async () => {
-      return await db.kV.findFirst({
-        where: {
-          key: 'currentSong'
-        }
-      })
-    }),
-  getNextSong: publicProcedure
-    .mutation(async () => {
-      const queue = await getCurrentQueue()
-      const next = queue.find(q => !q.playedAt)
-      if (!next) {
-        return null
-      }
-      await db.songQueue.update({
-        where: {
-          id: next.id
-        },
-        data: {
-          playedAt: new Date()
-        }
-      })
-
-      // Save to KV Current Song
-      await db.kV.upsert({
-        where: {
-          key: 'currentSong'
-        },
-        create: {
-          key: 'currentSong',
-          value: next.data
-        },
-        update: {
-          value: next.data
-        }
-      })
-      return next
-    }),
-  getCurrentQueue: publicProcedure
-    .query(async () => {
-      return await getCurrentQueue()
-    }),
-  orderUp: publicProcedure
-    .input(z.object({ id: z.number() }))
-    .mutation(async ({ input }) => {
-      const queue = await getCurrentQueue()
-      const index = queue.findIndex(q => q.id === input.id)
-      if (index === 0) {
-        return queue
-      }
-      const prev = queue[index - 1]
-      const current = queue[index]
-      if (!prev || !current) { 
-        return queue
-      }
-      await db.songQueue.update({
-        where: {
-          id: current.id
-        },
-        data: {
-          order: prev.order
-        }
-      })
-      await db.songQueue.update({
-        where: {
-          id: prev.id
-        },
-        data: {
-          order: current.order
-        }
-      })
-      return await getCurrentQueue()
-    }),
-  orderDown: publicProcedure
-    .input(z.object({ id: z.number() }))
-    .mutation(async ({ input }) => {
-      const queue = await getCurrentQueue()
-      const index = queue.findIndex(q => q.id === input.id)
-      if (index === queue.length - 1) {
-        return queue
-      }
-      const next = queue[index + 1]
-      const current = queue[index]
-      if (!next || !current) { 
-        return queue
-      }
-      await db.songQueue.update({
-        where: {
-          id: current.id
-        },
-        data: {
-          order: next.order
-        }
-      })
-      await db.songQueue.update({
-        where: {
-          id: next.id
-        },
-        data: {
-          order: current.order
-        }
-      })
-      return await getCurrentQueue()
-    }),
-  addQueue: publicProcedure
-    .input(z.object({ data: z.any() }))
-    .mutation(async ({ input }) => {
-      const queue = await getCurrentQueue()
-      const last = queue[queue.length - 1]
-      const order = last ? last.order + 1 : 0
-      const q = await db.songQueue.create({
-        data: {
-          data: JSON.stringify(input.data),
-          order
-        }
-      })
-      console.log('Queue added:', q)
-      return q
-    }),
-  removeSongFromQueue: publicProcedure
-    .input(z.object({ id: z.number() }))
-    .mutation(async ({ input }) => {
-      await db.songQueue.update({
-        where: {
-          id: input.id
-        },
-        data: {
-          deletedAt: new Date()
-        }
-      })
-      return await getCurrentQueue()
-    }),
-  addToFirstQueue: publicProcedure
-    .input(z.object({ id: z.number() }))
-    .mutation(async ({ input }) => {
-      const queue = await getCurrentQueue()
-      const current = queue.find(q => q.id === input.id)
-      if (!current) {
-        return queue
-      }
-      const first = queue[0]
-      if (!first) {
-        return queue
-      }
-      await db.songQueue.update({
-        where: {
-          id: current.id
-        },
-        data: {
-          order: first.order - 1
-        }
-      })
-      return await getCurrentQueue()
-    }),
   search: publicProcedure
-    .input(z.object({ text: z.string(), karaoke: z.boolean().default(true) }))
+    .input(z.object({ text: z.string(), roomId: z.string() }))
     .mutation(async ({ input }) => {
-      const keyword = input.karaoke ? input.text + " カラオケ KARAOKE" : input.text
-      const nicoKeyword = input.karaoke ? input.text + " カラオケ" : input.text
-      console.log('Search:', input.text, 'Keyword:', keyword)
+      const config = await getRoomConfig(input.roomId)
+      let keyword = input.text
+      if (config.searchSuffix !== 'off') {
+        if (config.searchSuffix === 'auto' || !config.searchSuffix) {
+          const langs = langdetect.detect(keyword)
+          if (langs && langs.length === 0) { 
+            switch (langs[0]?.lang) {
+              case 'ja':
+                config.searchSuffix = '1'
+                break
+              case 'zh':
+                config.searchSuffix = '2'
+                break
+              case 'ko':
+                config.searchSuffix = '3'
+                break
+              case 'th':
+                config.searchSuffix = '4'
+                break
+              default:
+                config.searchSuffix = '0'
+            }
+          } else {
+            config.searchSuffix = '0'
+          }
+         
+        }
+        switch (config.searchSuffix) {
+          case '0': // Eng 
+            keyword += ' KARAOKE'
+            break
+          case '1': // Jp
+            keyword += ' カラオケ'
+            break
+          case '2': // Chinese
+            keyword += ' 卡拉OK'
+            break
+          case '3': // Korean
+            keyword += ' 노래방'
+            break
+          case '4': // Thai
+            keyword += ' คาราโอเกะ'
+            break
+          default:
+            keyword += ` ${config.searchSuffix}`
+        }
+      }
+      if (config.alwaysAddEngSuffix && config.searchSuffix !== '0' && config.searchSuffix !== 'KARAOKE') {
+        keyword += ' KARAOKE'
+      }
+      console.log('Searching for:', keyword, ' in room:', input.roomId)
       //https://nicovrc.net/proxy?https://www.nicovideo.jp/watch/sm40929392
-      let nico: {
+      const songs: {
         i: number
         title: string
-        href: string
+        id: string
         thumb: string
+        type: 'youtube' | 'niconico'
+        raw?: object
       }[] = []
       try {
-        const res = await fetch(`https://www.nicovideo.jp/search/${encodeURIComponent(nicoKeyword)}?f_range=0&l_range=0&opt_md=&start=&end=`).then(res => res.text())
-        const $ = cheerio.load(res as string);
+        const res = await fetch(`https://www.nicovideo.jp/search/${encodeURIComponent(keyword)}?f_range=0&l_range=0&opt_md=&start=&end=`).then(res => res.text())
+        const $ = cheerio.load(res);
         $('li.item').each((i, elem) => {
           const itemContent = $(elem).find('.itemContent')
-          const title = $(itemContent).find('p.itemTitle').text() || ''
-          const href = $(itemContent).find('p.itemTitle > a').attr('href') || ''
-          const thumb = $(elem).find('.thumb').attr('src') || ''
-          if(title && href && thumb) {
-            nico.push({
+          const title = $(itemContent).find('p.itemTitle').text() ?? ''
+          const href = $(itemContent).find('p.itemTitle > a').attr('href') ?? ''
+          const thumb = $(elem).find('.thumb').attr('src') ?? ''
+          if (title && href && thumb) {
+            songs.push({
               i,
               title: cleanText(title),
-              href,
-              thumb
+              id: href,
+              thumb,
+              type: 'niconico'
             })
           }
         })
       } catch (e) {
         console.error(e)
       }
-      const youtube = await youtubeSearch.GetListByKeyword(keyword, false, 20) as YoutubeSearchResponse
-      return {
-        nico,
-        youtube
-      };
-    }),
+      const youtube = await youtubeSearch.GetListByKeyword(keyword, false, 40) as YoutubeSearchResponse
+      youtube.items.forEach((item, i) => {
+        if (item.type !== 'channel') { 
+          songs.push({
+            i: ++i,
+            title: cleanText(item.title),
+            id: item.id,
+            thumb: item.thumbnail.thumbnails[0]?.url ?? '',
+            type: 'youtube',
+            raw: item
+          })
+        }
+      })
+      // Sort it by title need keyword karaoke to be at the top
+      // List keyword KARAOKE karaoke instrumental カラオケ 卡拉OK 노래방 คาราโอเกะ
+      const order = ['karaoke', 'offvocal', 'カラオケ', '卡拉OK', '노래방', 'คาราโอเกะ', 'onvocal', 'instrumental', 'lyrics', 'inst']
+      if(songs.length === 0) return []
+      const sorted = songs.sort((a, b) => {
+        // Find the index of the keyword in `keywords` array for `a`
+        const aIndex = order.findIndex(keyword => a.title.toLowerCase().includes(keyword.toLowerCase()));
+        // Find the index of the keyword in `keywords` array for `b`
+        const bIndex = order.findIndex(keyword => b.title.toLowerCase().includes(keyword.toLowerCase()));
+
+        // If `a` has a keyword and `b` does not, `a` should come first
+        if (aIndex !== -1 && bIndex === -1) return -1;
+        // If `b` has a keyword and `a` does not, `b` should come first
+        if (aIndex === -1 && bIndex !== -1) return 1;
+        // If both `a` and `b` have keywords, the one with the lower index in `keywords` should come first
+        if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+
+        // If neither `a` nor `b` have a keyword, keep the original order
+        return 0;
+      });
+      return config.searchSuffix !== 'off' ? sorted : songs
+    }
+  ),
 });

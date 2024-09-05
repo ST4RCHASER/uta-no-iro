@@ -6,8 +6,7 @@ await import("./src/env.js");
 
 /** @type {import("next").NextConfig} */
 const config = {
-  transpilePackages: ['react-hls-player','geist'],
-  reactStrictMode: false,
+  reactStrictMode: true,
 
   /**
    * If you are using `appDir` then you must comment the below `i18n` config out.
@@ -18,6 +17,7 @@ const config = {
     locales: ["en"],
     defaultLocale: "en",
   },
+  transpilePackages: ["geist"],
 };
 
 export default config;
