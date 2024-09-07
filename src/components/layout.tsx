@@ -77,7 +77,7 @@ export function Layout({ children, title, description}: { children: React.ReactN
                         <div className=" border-gray-500 my-3 border-t"></div>
                         <ul className="space-y-2 font-medium">
                             {
-                                !isMobileOrTablet && (room?.states && JSON.parse(room?.states).updatedAt < Date.now() - 3000) && (
+                                !isMobileOrTablet && (!room?.states ||  room?.states && JSON.parse(room?.states).updatedAt < Date.now() - 3000) && (
                                     <li>
                                         <Link href="/player" className="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group">
                                             <RxLaptop />
