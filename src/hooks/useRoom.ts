@@ -7,9 +7,11 @@ import { useEffect } from "react"
 function useRoom() {
     const router = useRouter()
     // If no room code store and not in / page, redirect to / page
-    const code = typeof window === "undefined" ? "" : localStorage.getItem("room") ?? ""
-    if (typeof window !== "undefined" && !code && router.pathname !== "/") {
-        void router.push("/")
+    const code = typeof localStorage !== 'undefined' ? localStorage.getItem("room") ?? "" : ""
+    if (!code && router.pathname !== "/") {
+        if(typeof window !== "undefined") {
+            void router.push("/")
+        }
     }
     const room = api.rooms.getRoom.useQuery(code, {
         refetchInterval: 1000,
@@ -35,6 +37,11 @@ function useRoom() {
     useEffect(() => {
         if(typeof window === "undefined") return
         if (room.isFetched) {
+            // If error
+            if (room.error && room.error.message === "Room not found") {
+                localStorage.removeItem("room")
+                void router.push("/")
+            }
             if (room.data == null) {
                 localStorage.removeItem("room")
                 void router.push("/")
