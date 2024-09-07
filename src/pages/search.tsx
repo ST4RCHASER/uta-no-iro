@@ -76,7 +76,7 @@ export function Monitor() {
                         <div className="flex border-b py-3 cursor-pointer hover:shadow-md px-2 ">
                           <div className="w-64">
                             <AspectRatio ratio={16 / 9}>
-                              <Image alt="Image" className="rounded-md object-cover" src={song.thumb} />
+                              <Image width={1280} height={720} alt="Image" className="rounded-md object-cover" src={song.thumb} />
                             </AspectRatio>
                          </div>
                           <div className="flex flex-col px-2 w-full">
@@ -151,7 +151,7 @@ export function Monitor() {
                                           addQueue.mutate({ roomId: room?.id ?? '', type: song.type, data: song, order: queue.order })
                                         }}
                                       >
-                                        <Image alt="song" src={queue.data.thumb} className="w-5 h-5 object-cover rounded" /> <span className="ml-2">#{queue.order} • {
+                                        <Image width={1280} height={720} alt="song" src={queue.data.thumb} className="w-5 h-5 object-cover rounded" /> <span className="ml-2">#{queue.order} • {
                                           queue.data.title.length > 32
                                             ? `${queue.data.title.slice(0, 32)}...`
                                             : queue.data.title
@@ -174,7 +174,7 @@ export function Monitor() {
                                           addQueue.mutate({ roomId: room?.id ?? '', type: song.type, data: song, order: queue.order + 1 })
                                         }}
                                       >
-                                        <Image alt="song" src={queue.data.thumb} className="w-5 h-5 object-cover rounded" /> <span className="ml-2">#{queue.order} • {
+                                        <Image width={1280} height={720} alt="song" src={queue.data.thumb} className="w-5 h-5 object-cover rounded" /> <span className="ml-2">#{queue.order} • {
                                           queue.data.title.length > 32
                                             ? `${queue.data.title.slice(0, 32)}...`
                                             : queue.data.title

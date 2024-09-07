@@ -8,7 +8,7 @@ function useRoom() {
     const router = useRouter()
     // If no room code store and not in / page, redirect to / page
     const code = typeof window === "undefined" ? "" : localStorage.getItem("room") ?? ""
-    if (!code && router.pathname !== "/") {
+    if (typeof window !== "undefined" && !code && router.pathname !== "/") {
         void router.push("/")
     }
     const room = api.rooms.getRoom.useQuery(code, {
