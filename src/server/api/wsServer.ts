@@ -6,13 +6,12 @@ import { createTRPCContext } from './trpc';
 import { appRouter } from './root'
 
 const wss = new WebSocketServer({
-    port: 45021,
+    port: process.env.WS_PORT ? parseInt(process.env.WS_PORT) : 45021,
 });
 const handler = applyWSSHandler({
     wss,
     router: appRouter,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    createContext: createTRPCContext as any,
+    createContext: createTRPCContext as never,
     keepAlive: {
         enabled: true,
         pingMs: 3000,
@@ -26,7 +25,7 @@ wss.on('connection', (ws) => {
         console.log(`➖➖ Connection (${wss.clients.size})`);
     });
 });
-console.log('✅ WebSocket Server listening on wsw://localhost:45021');
+console.log('✅ WebSocket Server listening on wsw://0.0.0.0:45021');
 process.on('SIGTERM', () => {
     console.log('SIGTERM');
     handler.broadcastReconnectNotification();

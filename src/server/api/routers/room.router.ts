@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "../trpc";
 import { db } from "@uta/server/db";
+import { EventEmitter } from "events";
+export const ee = new EventEmitter();
 
 const getRandomRoomCode = async () => { 
   let limits = 100

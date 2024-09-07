@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import Layout from "@uta/components/layout"
 import { useRoom } from "@uta/hooks/useRoom"
 import {
@@ -19,9 +18,10 @@ import {
   DropdownMenuTrigger,
 } from "@uta/shadcn/components/ui/dropdown-menu"
 import { api } from "@uta/utils/api"
-import { RxCaretSort, RxCircle, RxClipboard, RxDoubleArrowDown, RxDoubleArrowLeft, RxDoubleArrowRight, RxMagnifyingGlass, RxPlay, RxPlusCircled, RxReload, RxShare1, RxShare2 } from "react-icons/rx"
+import { RxCaretSort, RxCircle, RxClipboard, RxDoubleArrowLeft, RxDoubleArrowRight, RxPlay, RxPlusCircled, RxShare1, RxShare2 } from "react-icons/rx"
 import { toast } from "sonner"
-import { convertQueueMeta, getLink } from "@uta/utils/convert"
+import { getLink } from "@uta/utils/convert"
+import Image from "next/image"
 
 export function Monitor() {
   const room = useRoom()
@@ -56,18 +56,18 @@ export function Monitor() {
                         <div className="flex border-b py-3 cursor-pointer hover:shadow-md px-2 ">
                           <div className="w-48">
                             <AspectRatio ratio={16 / 9}>
-                              <img alt="Image" className="rounded-md object-cover" src={convertQueueMeta(song.data).thumb} />
+                              <Image alt="Image" className="rounded-md object-cover" src={song.data.thumb} />
                             </AspectRatio>
                          </div>
                           <div className="flex flex-col px-2 w-full">
                             <span className="text-sm md:text-xl text-purple-400 font-semibold pt-1">
-                              {convertQueueMeta(song.data).title}
+                              {song.data.title}
                             </span>
                             <span className="text-sm text-slate-400  uppercase font-medium mt-2">
-                              {convertQueueMeta(song.data).description}
+                              {song.data.description}
                             </span>
                             <span className="text-xs text-slate-400  uppercase font-medium mt-2">
-                              {convertQueueMeta(song.data).type} • Played at {new Date(song.createdAt).toLocaleString()}
+                              {song.data.type} • Played at {new Date(song.createdAt).toLocaleString()}
                             </span>
                           </div>
                         </div>
@@ -76,9 +76,9 @@ export function Monitor() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-56 dark">
                     <DropdownMenuLabel>{
-                      convertQueueMeta(song.data).title.length > 24
-                        ? `${convertQueueMeta(song.data).title.slice(0, 24)}...`
-                        : convertQueueMeta(song.data).title
+                      song.data.title.length > 24
+                        ? `${song.data.title.slice(0, 24)}...`
+                        : song.data.title
                     }</DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuGroup>
@@ -89,7 +89,7 @@ export function Monitor() {
                             cmd: JSON.stringify({
                               roomId: room?.id ?? '',
                               type: 'PLAY_TRACK',
-                              payload: convertQueueMeta(song.data)
+                              payload: song.data
                             })
                            })
                         }}
@@ -100,7 +100,7 @@ export function Monitor() {
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       onClick={() => {
-                        addQueue.mutate({ roomId: room?.id ?? '', type: convertQueueMeta(song.data).type, data: convertQueueMeta(song.data), order: (room?.queues.length ?? 0) + 1 })
+                        addQueue.mutate({ roomId: room?.id ?? '', type: song.data.type, data: song.data, order: (room?.queues.length ?? 0) + 1 })
                       }}
                     ><RxPlusCircled /> <span className="ml-2">Add to queue</span></DropdownMenuItem>
                     <DropdownMenuGroup>
@@ -110,12 +110,12 @@ export function Monitor() {
                           <DropdownMenuSubContent className="dark">
                             <DropdownMenuItem
                               onClick={() => {
-                                addQueue.mutate({ roomId: room?.id ?? '', type: convertQueueMeta(song.data).type, data: convertQueueMeta(song.data), order: 1 })
+                                addQueue.mutate({ roomId: room?.id ?? '', type: song.data.type, data: song.data, order: 1 })
                               }}
                             ><RxDoubleArrowLeft /> <span className="ml-2">Play next</span></DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => {
-                                addQueue.mutate({ roomId: room?.id ?? '', type: convertQueueMeta(song.data).type, data: convertQueueMeta(song.data), order: (room?.queues.length ?? 0) + 1 })
+                                addQueue.mutate({ roomId: room?.id ?? '', type: song.data.type, data: song.data, order: (room?.queues.length ?? 0) + 1 })
                               }}
                             ><RxDoubleArrowRight /> <span className="ml-2">Last in queue</span></DropdownMenuItem>
                             <DropdownMenuSeparator />
@@ -128,13 +128,13 @@ export function Monitor() {
                                       <DropdownMenuItem
                                         key={queue.id}
                                         onClick={() => {
-                                          addQueue.mutate({ roomId: room?.id ?? '', type: convertQueueMeta(song.data).type, data: convertQueueMeta(song.data), order: queue.order })
+                                          addQueue.mutate({ roomId: room?.id ?? '', type: song.data.type, data: song.data, order: queue.order })
                                         }}
                                       >
-                                        <img src={convertQueueMeta(queue.data).thumb} className="w-5 h-5 object-cover rounded" /> <span className="ml-2">#{queue.order} • {
-                                          convertQueueMeta(queue.data).title.length > 32
-                                            ? `${convertQueueMeta(queue.data).title.slice(0, 32)}...`
-                                            : convertQueueMeta(queue.data).title
+                                        <Image alt="song" src={queue.data.thumb} className="w-5 h-5 object-cover rounded" /> <span className="ml-2">#{queue.order} • {
+                                          queue.data.title.length > 32
+                                            ? `${queue.data.title.slice(0, 32)}...`
+                                            : queue.data.title
                                         }</span>
                                       </DropdownMenuItem>
                                     ))
@@ -147,17 +147,17 @@ export function Monitor() {
                               <DropdownMenuPortal>
                                 <DropdownMenuSubContent className="dark">
                                   {
-                                    room?.queues.map((queue, index) => (
+                                    room?.queues.map((queue) => (
                                       <DropdownMenuItem
                                         key={queue.id}
                                         onClick={() => {
                                           addQueue.mutate({ roomId: room?.id ?? '', type: song.type, data: song, order: queue.order + 1 })
                                         }}
                                       >
-                                        <img src={convertQueueMeta(queue.data).thumb} className="w-5 h-5 object-cover rounded" /> <span className="ml-2">#{queue.order} • {
-                                          convertQueueMeta(queue.data).title.length > 32
-                                            ? `${convertQueueMeta(queue.data).title.slice(0, 32)}...`
-                                            : convertQueueMeta(queue.data).title
+                                        <Image src={queue.data.thumb} className="w-5 h-5 object-cover rounded" alt="song" /> <span className="ml-2">#{queue.order} • {
+                                          queue.data.title.length > 32
+                                            ? `${queue.data.title.slice(0, 32)}...`
+                                            : queue.data.title
                                         }</span>
                                       </DropdownMenuItem>
                                     ))
@@ -179,8 +179,8 @@ export function Monitor() {
                       onClick={
                         () => {
                           navigator.share({
-                            title: convertQueueMeta(song.data).title,
-                            text: convertQueueMeta(song.data).description,
+                            title: song.data.title,
+                            text: song.data.description,
                             url: getLink(song.type, song.id)
                           }).then(() => console.log('Successful share')).catch((error) => console.log('Error sharing', error));
                         }
@@ -198,7 +198,7 @@ export function Monitor() {
                           ><RxClipboard /> <span className="ml-2">Link</span></DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => {
-                              void navigator.clipboard.writeText(convertQueueMeta(song.data).title)
+                              void navigator.clipboard.writeText(song.data.title)
                             }}
                           ><RxClipboard /> <span className="ml-2">Title</span></DropdownMenuItem>
                         </DropdownMenuSubContent>

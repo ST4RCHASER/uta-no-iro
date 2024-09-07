@@ -1,5 +1,7 @@
+import type { Queue } from "@uta/types/queue.types"
+
 export const convertQueueMeta = (queue: string) => {
-    const data = JSON.parse(queue) as { i: number, title: string, id: string, thumb: string, type: string, description: string, raw: string }
+    const data = JSON.parse(queue) as Queue
     return {
         i: data.i,
         title: data.title,

@@ -16,6 +16,7 @@ export function useDeviceType() {
         }
 
         handleDeviceDetection();
+        if(typeof window === 'undefined') return;
         window.addEventListener('resize', handleDeviceDetection);
 
         return () => window.removeEventListener('resize', handleDeviceDetection);

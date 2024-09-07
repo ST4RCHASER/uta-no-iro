@@ -18,7 +18,6 @@ import {
   InputOTPGroup,
   InputOTPSlot,
 } from "@uta/shadcn/components/ui/input-otp"
-import { toast } from "@uta/shadcn/hooks/use-toast"
 import Head from "next/head"
 import {
   Card,
@@ -29,7 +28,6 @@ import {
 } from "@uta/shadcn/components/ui/card"
 import { api } from "@uta/utils/api"
 import { RxReload } from "react-icons/rx"
-import { redirect } from "next/navigation"
 import { useRouter } from "next/router"
 
 const FormSchema = z.object({

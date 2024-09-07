@@ -1,23 +1,10 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable react-hooks/rules-of-hooks */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import HLSPlayer from "@uta/components/hlsPlayer";
 import Layout from "@uta/components/layout"
 import { useRoom } from "@uta/hooks/useRoom";
 import { api } from "@uta/utils/api";
 import YouTube from "react-youtube";
-import { convertQueueMeta } from "@uta/utils/convert";
 import { useEffect, useRef, useState } from "react";
-type Track = ReturnType<typeof convertQueueMeta> & {sec: number} | null
-export type RoomState = {
-  state: 'idle' | 'playing' | 'paused' | 'loading';
-  track: Track
-  currentTime?: number
-  duration?: number
-}
+import type { FakeYoutubeVideoPlayer, RoomState, Track } from "@uta/types/room.types";
 
 export function Monitor() {
   const room = useRoom()
@@ -28,7 +15,7 @@ export function Monitor() {
     track: null
   } as RoomState);
   const [isReady, setIsReady] = useState(false);
-  const [playerRef, setPlayerRef] = useState<any>()
+  const [playerRef, setPlayerRef] = useState<FakeYoutubeVideoPlayer>()
   const hlsPlayerRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -47,7 +34,7 @@ export function Monitor() {
   useEffect(() => { 
     if (room && room.states !== null && !isReady) { 
       console.log('Setting state', room.states);
-      setPlayerState(JSON.parse(room.states) as RoomState);
+      setPlayerState(room.states);
       setIsReady(true);
     } else if (room && room.states === null && !isReady) {
       updater.mutate({
@@ -73,7 +60,7 @@ export function Monitor() {
     }
   }, [JSON.stringify(playerRef?.playerInfo)])
 
-  const sub = api.songs.onBroadcast.useSubscription({
+  api.songs.onBroadcast.useSubscription({
     roomId: room?.id ?? ''
   }, {
     onData(data: string) {
@@ -83,6 +70,7 @@ export function Monitor() {
         switch (event.type) {
           case 'PLAY_TRACK':
             setPlayerState({
+              ...playerState,
               state: 'loading',
               track: event.payload 
             });
@@ -90,7 +78,7 @@ export function Monitor() {
           case 'NEXT':
             break;
           case 'SEEK':
-            playerRef?.seekTo(event?.payload?.sec);
+            playerRef?.seekTo(event?.payload?.sec ?? 0);
             if (hlsPlayerRef.current) {
               hlsPlayerRef.current.currentTime = event?.payload?.sec ?? 0;
             }
@@ -133,7 +121,10 @@ export function Monitor() {
                 allow="autoplay"
                 title={playerState.track.title}
                 iframeClassName="w-screen h-screen fixed left-0 top-0"
-                onStateChange={(e: any) => {
+                onStateChange={(e: {
+                  data: number, 
+                  target: FakeYoutubeVideoPlayer
+                }) => {
                   switch (e.data) { 
                     // 1 - Playing
                     case 1:
@@ -175,7 +166,9 @@ export function Monitor() {
                   console.log('Youtube state change', e);
                   setPlayerRef(e.target);
                 }}
-                onReady={(e: any) => {
+                onReady={(e: {
+                  target: FakeYoutubeVideoPlayer
+                }) => {
                   e.target.playVideo();
                   setPlayerState({
                     ...playerState,

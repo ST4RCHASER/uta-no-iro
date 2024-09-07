@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { AspectRatio } from "@radix-ui/react-aspect-ratio"
 import Layout from "@uta/components/layout"
 import { useRoom } from "@uta/hooks/useRoom"
@@ -22,9 +19,10 @@ import {
 } from "@uta/shadcn/components/ui/dropdown-menu"
 import { Slider } from "@uta/shadcn/components/ui/slider"
 import { api } from "@uta/utils/api"
-import { convertQueueMeta, getLink, secToMinuteFormat } from "@uta/utils/convert"
+import { getLink, secToMinuteFormat } from "@uta/utils/convert"
+import Image from "next/image"
 import { useEffect, useState } from "react"
-import { RxCaretDown, RxCaretSort, RxCaretUp, RxClipboard, RxDoubleArrowDown, RxDoubleArrowUp, RxMinusCircled, RxPause, RxPlay, RxReload, RxReset, RxShare1, RxShare2 } from "react-icons/rx"
+import { RxCaretDown, RxCaretSort, RxCaretUp, RxClipboard, RxDoubleArrowDown, RxDoubleArrowUp, RxMinusCircled, RxPause, RxPlay, RxShare1, RxShare2 } from "react-icons/rx"
 export function Monitor() {
   const room = useRoom()
   const play = api.songs.play.useMutation()
@@ -46,24 +44,24 @@ export function Monitor() {
           <div className="w-full">
             <div className="bg-white border-slate-100 dark:bg-slate-800 dark:border-slate-500 border-b rounded-t-xl p-4 pb-6 sm:p-10 sm:pb-8 lg:p-6 xl:p-10 xl:pb-8 space-y-6 sm:space-y-8 lg:space-y-6 xl:space-y-8  items-center">
               <div className="flex items-center space-x-4">
-                <img src={
-                  room?.states && JSON.parse(room.states).track?.thumb
+                <Image src={
+                  room?.states?.track?.thumb ?? 'https://via.placeholder.com/88'
                 } alt={
-                  room?.states && JSON.parse(room.states).track?.title
+                   room?.states?.track?.title ?? 'No track'
                 } width="88" height="88" className="flex-none rounded-lg bg-slate-100" loading="lazy" />
                 <div className="min-w-0 flex-auto space-y-1 font-semibold">
                   <p className="text-purple-500 dark:text-purple-400 text-sm leading-6">
                     <abbr title="Track">Soruce:</abbr> <span className="capitalize">
                       {
-                        room?.states && JSON.parse(room.states).track?.type
+                        room?.states?.track?.type ?? 'No track playing'
                       }
                     </span>
                   </p>
                   <h2 className="text-slate-500 dark:text-slate-400 text-sm leading-6 truncate">
-                    {room?.states && JSON.parse(room.states).track?.description}
+                    {room?.states?.track?.description ?? '-'}
                   </h2>
                   <p className="text-slate-900 dark:text-slate-50 text-lg">
-                    {room?.states && JSON.parse(room.states).track?.title}
+                    {room?.states?.track?.title ?? '-'}
                   </p>
                 </div>
               </div>
@@ -84,23 +82,17 @@ export function Monitor() {
                         })
                       }}
                       value={
-                        fakeSeeker > 0 ? [fakeSeeker] : [room?.states ? Math.ceil(JSON.parse(room.states).currentTime) : 0]
+                        fakeSeeker > 0 ? [fakeSeeker] : [room?.states?.currentTime ? Math.ceil(room.states.currentTime) : 0]
                       }
                       max={
-                        room?.states ? Math.ceil(JSON.parse(room.states).duration) : 0
+                        room?.states?.duration ? room?.states?.duration : 0
                       } min={0} step={1} />
-                    {/* <div className="bg-purple-500 dark:bg-purple-400 w-1/2 h-2" role="progressbar" aria-label="music progress" aria-valuenow={1} aria-valuemin="0" aria-valuemax="100">
-                      
-                    </div> */}
                   </div>
-                  {/* <div className="ring-purple-500 dark:ring-purple-400 ring-2 absolute left-1/2 top-1/2 w-4 h-4 -mt-2 -ml-2 flex items-center justify-center bg-white rounded-full shadow">
-                    <div className="w-1.5 h-1.5 bg-purple-500 dark:bg-purple-400 rounded-full ring-1 ring-inset ring-slate-900/5"></div>
-                  </div> */}
                 </div>
                 <div className="flex justify-between text-sm leading-6 font-medium tabular-nums">
-                  <div className="text-purple-500 dark:text-slate-100">{room?.states && secToMinuteFormat(JSON.parse(room.states).currentTime) }</div>
+                  <div className="text-purple-500 dark:text-slate-100">{room?.states?.currentTime && secToMinuteFormat(room.states.currentTime) }</div>
                   <div className="text-slate-500 dark:text-slate-400">
-                    {room?.states && secToMinuteFormat(JSON.parse(room.states).duration)}
+                    {room?.states?.duration && secToMinuteFormat(room.states.duration)}
                   </div>
                 </div>
               </div>
@@ -129,7 +121,7 @@ export function Monitor() {
                       cmd: JSON.stringify({
                         type: 'SEEK',
                         payload: {
-                          sec: JSON.parse(room?.states ?? '').currentTime - 10
+                          sec: room?.states?.currentTime ? room.states.currentTime - 10 : 0
                         }
                       })
                     })
@@ -146,13 +138,13 @@ export function Monitor() {
                   broadcastPlayerCommand.mutate({
                     roomId: room?.id ?? '',
                     cmd: JSON.stringify({
-                      type: room?.states && JSON.parse(room.states).state !== 'playing' ? 'PLAY' : 'PAUSE'
+                      type: room?.states?.state === 'playing' ? 'PAUSE' : 'PLAY'
                     })
                   })
                 }}
               >
                 {
-                  room?.states && JSON.parse(room.states).state === 'playing'
+                  room?.states?.state === 'playing'
                     ? <RxPause className="text-4xl" />
                     : <RxPlay className="text-4xl" />
                 }
@@ -165,7 +157,7 @@ export function Monitor() {
                       cmd: JSON.stringify({
                         type: 'SEEK',
                         payload: {
-                          sec: JSON.parse(room?.states ?? '').currentTime + 10
+                          sec: room?.states?.currentTime ? room.states.currentTime + 10 : 0
                         }
                       })
                     })
@@ -186,9 +178,6 @@ export function Monitor() {
                     <path d="M18 6v12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                   </svg>
                 </button>
-                {/* <button type="button" className="rounded-lg text-xs leading-6 font-semibold px-2 ring-2 ring-inset ring-slate-500 text-slate-500 dark:text-slate-100 dark:ring-0 dark:bg-slate-500">
-                  1x
-                </button> */}
               </div>
             </div>
           </div>
@@ -211,15 +200,15 @@ export function Monitor() {
                           <div className="flex border-b py-3 cursor-pointer hover:shadow-md px-2 ">
                             <div className="w-16">
                               <AspectRatio ratio={16 / 9}>
-                                <img alt="Image" className="rounded-md object-cover" src={convertQueueMeta(queueTop.data).thumb} />
+                                <Image alt="Image" className="rounded-md object-cover" src={queueTop.data.thumb} />
                               </AspectRatio>
                             </div>
                             <div className="flex flex-col px-2 w-full">
                               <span className="text-sm text-purple-400 capitalize font-semibold pt-1">
-                                #{queueTop.order} • {convertQueueMeta(queueTop.data).title}
+                                #{queueTop.order} • {queueTop.data.title}
                               </span>
                               <span className="text-xs text-slate-400  uppercase font-medium">
-                                {convertQueueMeta(queueTop.data).type} • {convertQueueMeta(queueTop.data).description}
+                                {queueTop.data.type} • {queueTop.data.description}
                               </span>
                             </div>
                           </div>
@@ -228,9 +217,9 @@ export function Monitor() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="w-56 dark">
                       <DropdownMenuLabel>{
-                        convertQueueMeta(queueTop.data).title.length > 24
-                          ? `${convertQueueMeta(queueTop.data).title.slice(0, 24)}...`
-                          : convertQueueMeta(queueTop.data).title
+                        queueTop.data.title.length > 24
+                          ? `${queueTop.data.title.slice(0, 24)}...`
+                          : queueTop.data.title
                       }</DropdownMenuLabel>
                       <DropdownMenuSeparator />
                       <DropdownMenuGroup>
@@ -276,10 +265,10 @@ export function Monitor() {
                                             changeOrder.mutate({ roomId: room.id, queueId: queueTop.id, newQueueOrder: (queue.order - 1) < 1 ? 1 : queue.order - 1 })
                                           }}
                                         >
-                                          <img src={convertQueueMeta(queue.data).thumb} className="w-5 h-5 object-cover rounded" /> <span className="ml-2">#{queue.order} • {
-                                            convertQueueMeta(queue.data).title.length > 32
-                                              ? `${convertQueueMeta(queue.data).title.slice(0, 32)}...`
-                                              : convertQueueMeta(queue.data).title
+                                          <Image alt="song" src={queue.data.thumb} className="w-5 h-5 object-cover rounded" /> <span className="ml-2">#{queue.order} • {
+                                            queue.data.title.length > 32
+                                              ? `${queue.data.title.slice(0, 32)}...`
+                                              : queue.data.title
                                           }</span>
                                         </DropdownMenuItem>
                                       ))
@@ -300,10 +289,10 @@ export function Monitor() {
                                             changeOrder.mutate({ roomId: room.id, queueId: queueTop.id, newQueueOrder: queue.order })
                                           }}
                                         >
-                                          <img src={convertQueueMeta(queue.data).thumb} className="w-5 h-5 object-cover rounded" /> <span className="ml-2">#{queue.order} • {
-                                            convertQueueMeta(queue.data).title.length > 32
-                                              ? `${convertQueueMeta(queue.data).title.slice(0, 32)}...`
-                                              : convertQueueMeta(queue.data).title
+                                          <Image alt="song" src={queue.data.thumb} className="w-5 h-5 object-cover rounded" /> <span className="ml-2">#{queue.order} • {
+                                            queue.data.title.length > 32
+                                              ? `${queue.data.title.slice(0, 32)}...`
+                                              : queue.data.title
                                           }</span>
                                         </DropdownMenuItem>
                                       ))
@@ -316,7 +305,7 @@ export function Monitor() {
                         </DropdownMenuSub>
                       </DropdownMenuGroup>
                       <DropdownMenuSeparator />
-                      <a href={getLink(queueTop.type, convertQueueMeta(queueTop.data).id)} target="_blank" rel="noreferrer" className="cursor-pointer">
+                      <a href={getLink(queueTop.type, queueTop.data.id)} target="_blank" rel="noreferrer" className="cursor-pointer">
                         <DropdownMenuItem>
                           <RxShare2 /> <span className="ml-2">Open on this device</span>
                         </DropdownMenuItem>
@@ -325,9 +314,9 @@ export function Monitor() {
                         onClick={
                           () => {
                             navigator.share({
-                              title: convertQueueMeta(queueTop.data).title,
-                              text: convertQueueMeta(queueTop.data).description,
-                              url: getLink(queueTop.type, convertQueueMeta(queueTop.data).id),
+                              title: queueTop.data.title,
+                              text: queueTop.data.description,
+                              url: getLink(queueTop.type, queueTop.data.id),
                             }).then(() => console.log('Successful share')).catch((error) => console.log('Error sharing', error));
                           }
                       }
@@ -339,12 +328,12 @@ export function Monitor() {
                             <DropdownMenuSubContent className="dark">
                               <DropdownMenuItem
                                 onClick={() => {
-                                  void navigator.clipboard.writeText(getLink(queueTop.type, convertQueueMeta(queueTop.data).id))
+                                  void navigator.clipboard.writeText(getLink(queueTop.type, queueTop.data.id))
                                 }}
                               ><RxClipboard /> <span className="ml-2">Link</span></DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => {
-                                  void navigator.clipboard.writeText(convertQueueMeta(queueTop.data).title)
+                                  void navigator.clipboard.writeText(queueTop.data.title)
                                 }}
                               ><RxClipboard /> <span className="ml-2">Title</span></DropdownMenuItem>
                             </DropdownMenuSubContent>

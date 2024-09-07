@@ -1,18 +1,15 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-// @ts-expect-error - no types
+// @ts-expect-error - no types for youtube-search-api
 import youtubeSearch from 'youtube-search-api';
 import * as cheerio from 'cheerio';
 import langdetect from 'langdetect';
-import { getRoomConfig } from './roomService';
-import type { YoutubeSearchResponse } from '@uta/server/types/yt.types';
+import { getRoomConfig } from './room.service';
+import type { YoutubeSearchResponse } from '@uta/types/yt.types';
 
 const cleanText = (text: string) => text.replace(/[\n\t]/g, '').trim()
 export const search = async (roomId: string, text: string) => { 
     const config = await getRoomConfig(roomId)
-    const allowYoutube = typeof config.allowSearchYoutube === 'undefined' ? true : config.allowSearchYoutube
-    const allowNiconico = typeof config.allowSearchNiconico === 'undefined' ? true : config.allowSearchNiconico
+    const allowYoutube = Boolean(typeof config.allowSearchYoutube === 'undefined' ? true : config.allowSearchYoutube)
+    const allowNiconico = Boolean(typeof config.allowSearchNiconico === 'undefined' ? true : config.allowSearchNiconico)
     let keyword = text
     if (config.searchSuffix !== 'off') {
         if (config.searchSuffix === 'auto' || !config.searchSuffix) {
@@ -100,7 +97,8 @@ export const search = async (roomId: string, text: string) => {
         }
     }
     if (allowYoutube) {
-        const youtube = await youtubeSearch.GetListByKeyword(keyword, false, 40) as YoutubeSearchResponse
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+        const youtube = await (youtubeSearch.GetListByKeyword(keyword, false, 40) as Promise<YoutubeSearchResponse>)
         youtube.items.forEach((item, i) => {
             if (item.type !== 'channel') {
                 songs.push({
@@ -116,8 +114,7 @@ export const search = async (roomId: string, text: string) => {
         })
     }
     // Sort it by title need keyword karaoke to be at the top
-    // List keyword KARAOKE karaoke instrumental カラオケ 卡拉OK 노래방 คาราโอเกะ
-    const order = ['karaoke', 'offvocal', 'カラオケ', '卡拉OK', '노래방', 'คาราโอเกะ', 'onvocal', 'instrumental', 'lyrics', 'inst']
+    const order = ['カラオケ', '卡拉OK', '노래방', 'คาราโอเกะ', 'karaoke', 'offvocal', 'onvocal', 'instrumental', 'vocal', 'lyrics', 'inst']
     if (songs.length === 0) return []
     const sorted = songs.sort((a, b) => {
         // Find the index of the keyword in `keywords` array for `a`

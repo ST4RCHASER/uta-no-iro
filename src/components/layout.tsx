@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { useDeviceType } from "@uta/hooks/useDeviceType";
 import { useRoom } from "@uta/hooks/useRoom";
 import Head from "next/head"
@@ -69,7 +68,7 @@ export function Layout({ children, title, description}: { children: React.ReactN
                                 </div>
                                 <div className="inline-block animate-marquee-infinite">
                                     <span>{
-                                        room?.states && JSON.parse(room?.states).track?.title || "No track playing"
+                                       room?.states?.track?.title ?? "No track playing"
                                     }</span>  
                                 </div>
                             </div>
@@ -77,7 +76,7 @@ export function Layout({ children, title, description}: { children: React.ReactN
                         <div className=" border-gray-500 my-3 border-t"></div>
                         <ul className="space-y-2 font-medium">
                             {
-                                !isMobileOrTablet && (!room?.states ||  room?.states && JSON.parse(room?.states).updatedAt < Date.now() - 3000) && (
+                                !isMobileOrTablet && (!room?.states || room?.states && room?.states.updatedAt < Date.now() - 3000) && (
                                     <li>
                                         <Link href="/player" className="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group">
                                             <RxLaptop />

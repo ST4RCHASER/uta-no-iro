@@ -1,39 +1,65 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+import type { RoomConfig, RoomState } from "@uta/types/room.types"
 import { api } from "@uta/utils/api"
+import { convertQueueMeta } from "@uta/utils/convert"
 import { useRouter } from "next/router"
 import { useEffect } from "react"
 
 function useRoom() {
     const router = useRouter()
-    if (typeof window === "undefined") return
     // If no room code store and not in / page, redirect to / page
-    const code = localStorage.getItem("room") ?? ""
-    if (!code && window.location.pathname !== "/") {
+    const code = typeof window === "undefined" ? "" : localStorage.getItem("room") ?? ""
+    if (!code && router.pathname !== "/") {
         void router.push("/")
     }
     const room = api.rooms.getRoom.useQuery(code, {
         refetchInterval: 1000,
         enabled: !!code
     })
-    // eslint-disable-next-line react-hooks/rules-of-hooks
+
+    let convertedStates: RoomState | null = null
+    try {
+        if (room.data && room.data.states) {
+            convertedStates = JSON.parse(room.data.states) as RoomState
+        }
+    } catch {
+    }
+
+    let roomSettings: RoomConfig | null = null
+    try {
+        if (room.data && room.data.config) {
+            roomSettings = JSON.parse(room.data.config) as RoomConfig
+        }
+    } catch {
+    }
+
     useEffect(() => {
+        if(typeof window === "undefined") return
         if (room.isFetched) {
             if (room.data == null) {
                 localStorage.removeItem("room")
                 void router.push("/")
             } else {
                 localStorage.setItem("room", room.data.code)
-                if (room.data.states && JSON.parse(room.data.states)?.track?.title) { 
-                    document.title = `Uta • ${JSON.parse(room.data.states)?.state} - ${JSON.parse(room.data.states).track.title}`
+                if (convertedStates?.track?.title) { 
+                    document.title = `Uta • ${convertedStates?.state} - ${convertedStates.track.title}`
                 } else {
                     document.title = `Uta • In room ${room.data.code}`
                 }
             }
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [room.data, room.isFetched])
-
-    return room.data ? room.data : undefined
+    
+    return room.data ? {
+        ...room.data,
+        states: convertedStates,
+        config: roomSettings,
+        queues: room.data.queues.map((queue) => {
+            return {
+                ...queue,
+                data: convertQueueMeta(queue.data)
+            }
+        })
+    } : undefined
 }
 
 export { useRoom }

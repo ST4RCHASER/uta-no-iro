@@ -26,13 +26,13 @@ export function Monitor() {
                 updateRoomSetting.mutate({
                   id: room.id,
                   data: {
-                      ...room.config && JSON.parse(room.config),
+                      ...room.config,
                       searchSuffix: e
                   }
                 })
               }
             } defaultValue={
-              room?.config && JSON.parse(room.config).searchSuffix || "auto"
+              room?.config?.searchSuffix ?? "auto"
             }
             
           >
@@ -65,7 +65,7 @@ export function Monitor() {
           <p>Search source</p>
           <Checkbox
             defaultChecked={
-              room?.config && JSON.parse(room.config).allowSearchYoutube || true
+              room?.config?.allowSearchYoutube ?? true
             }
             onCheckedChange={
               (e) => {
@@ -73,7 +73,7 @@ export function Monitor() {
                 updateRoomSetting.mutate({
                   id: room.id,
                   data: {
-                    ...room.config && JSON.parse(room.config),
+                    ...room.config,
                     allowSearchYoutube: e
                   }
                 })
@@ -88,7 +88,7 @@ export function Monitor() {
           <br />
           <Checkbox
             defaultChecked={
-              room?.config && JSON.parse(room.config).allowSearchNiconico || true
+              room?.config?.allowSearchNiconico ?? true
             }
             onCheckedChange={
               (e) => {
@@ -96,7 +96,7 @@ export function Monitor() {
                 updateRoomSetting.mutate({
                   id: room.id,
                   data: {
-                    ...room.config && JSON.parse(room.config),
+                    ...room.config,
                     allowSearchNiconico: e
                   }
                 })

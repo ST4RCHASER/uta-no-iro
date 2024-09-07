@@ -1,9 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { db } from "@uta/server/db"
-import { ee } from "./song"
+import { ee } from "./room.router"
+import type { RoomConfig, RoomState, Track } from "@uta/types/room.types"
+import { convertQueueMeta } from "@uta/utils/convert"
 
 export const playSong = async (roomId: string,queueId?: string) => { 
     const room = await db.room.findFirst({
@@ -44,7 +42,7 @@ export const playSong = async (roomId: string,queueId?: string) => {
     const data = {
         roomId: roomId,
         type: 'PLAY_TRACK',
-        payload: JSON.parse(queue.data)
+        payload: JSON.parse(queue.data) as Track
     }
     ee.emit('cmd', JSON.stringify(data))
     // Delete that song from the queue
@@ -278,7 +276,7 @@ export const addQueue = async (roomId: string, order: number, type: string, data
     await Promise.all(promises)
 
     //If state is idle, play the song
-    if (room.states === null || JSON.parse(room.states).state === 'idle') {
+    if (room.states === null || (JSON.parse(room.states) as RoomState).state === 'idle') {
         await playSong(room.id)
     }
 
@@ -295,11 +293,11 @@ export const getRoomConfig = async (roomId: string) => {
         throw new Error('Room not found')
     }
 
-    return JSON.parse(room.config ?? '{}')
+    return JSON.parse(room.config ?? '{}') as RoomConfig
 }
 
 
-export const saveConfig = async (roomId: string, config: any) => {
+export const saveConfig = async (roomId: string, config: RoomConfig) => {
     await db.room.update({
         where: {
             id: roomId
@@ -311,4 +309,26 @@ export const saveConfig = async (roomId: string, config: any) => {
             })
         }
     })
+}
+
+
+export const getRoomHistory = async (roomId: string) => {
+    const history = await db.songQueue.findMany({
+        where: {
+            roomId: roomId,
+            playedAt: {
+                not: null
+            }
+        },
+        orderBy: {
+            playedAt: 'desc'
+        }
+    })
+    return history.map((h) => {
+        return {
+            ...h,
+            data: convertQueueMeta(h.data)
+        }
+    }
+    )
 }

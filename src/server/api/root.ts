@@ -1,6 +1,6 @@
-import { songRouter } from "@uta/server/api/routers/song";
+import { songRouter } from "@uta/server/api/routers/song.router";
 import { createCallerFactory, createTRPCRouter } from "@uta/server/api/trpc";
-import { roomRouter } from "./routers/room";
+import { roomRouter } from "./routers/room.router";
 
 /**
  * This is the primary router for your server.

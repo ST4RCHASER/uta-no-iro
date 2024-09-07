@@ -9,6 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@uta/shadcn/components/ui/dropdown-menu"
+import Image from "next/image"
 import { RxMinusCircled } from "react-icons/rx"
 
 export function Users() {
@@ -22,7 +23,7 @@ export function Users() {
                 <div className="mt-4">
                   <Card>
                     <div className="flex border-b py-3 cursor-pointer hover:shadow-md px-2 ">
-                      <img className='w-10 h-10 object-cover rounded-lg' alt='User avatar' src='https://a.ppy.sh' />
+                      <Image className='w-10 h-10 object-cover rounded-lg' alt='User avatar' width={32} src='https://a.ppy.sh' />
                       <div className="flex flex-col px-2 w-full">
                         <span className="text-sm text-purple-400 font-semibold pt-1">
                           starchaser

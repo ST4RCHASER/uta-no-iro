@@ -21,9 +21,10 @@ import {
 } from "@uta/shadcn/components/ui/dropdown-menu"
 import { Input } from "@uta/shadcn/components/ui/input"
 import { api } from "@uta/utils/api"
-import { RxCaretSort, RxCircle, RxClipboard, RxDoubleArrowDown, RxDoubleArrowLeft, RxDoubleArrowRight, RxMagnifyingGlass, RxPlay, RxPlusCircled, RxReload, RxShare1, RxShare2 } from "react-icons/rx"
+import { RxCaretSort, RxCircle, RxClipboard, RxDoubleArrowLeft, RxDoubleArrowRight, RxMagnifyingGlass, RxPlay, RxPlusCircled, RxReload, RxShare1, RxShare2 } from "react-icons/rx"
 import { toast } from "sonner"
-import { convertQueueMeta, getLink } from "@uta/utils/convert"
+import { getLink } from "@uta/utils/convert"
+import Image from "next/image"
 
 export function Monitor() {
   const room = useRoom()
@@ -75,7 +76,7 @@ export function Monitor() {
                         <div className="flex border-b py-3 cursor-pointer hover:shadow-md px-2 ">
                           <div className="w-64">
                             <AspectRatio ratio={16 / 9}>
-                              <img alt="Image" className="rounded-md object-cover" src={song.thumb} />
+                              <Image alt="Image" className="rounded-md object-cover" src={song.thumb} />
                             </AspectRatio>
                          </div>
                           <div className="flex flex-col px-2 w-full">
@@ -150,10 +151,10 @@ export function Monitor() {
                                           addQueue.mutate({ roomId: room?.id ?? '', type: song.type, data: song, order: queue.order })
                                         }}
                                       >
-                                        <img src={convertQueueMeta(queue.data).thumb} className="w-5 h-5 object-cover rounded" /> <span className="ml-2">#{queue.order} • {
-                                          convertQueueMeta(queue.data).title.length > 32
-                                            ? `${convertQueueMeta(queue.data).title.slice(0, 32)}...`
-                                            : convertQueueMeta(queue.data).title
+                                        <Image alt="song" src={queue.data.thumb} className="w-5 h-5 object-cover rounded" /> <span className="ml-2">#{queue.order} • {
+                                          queue.data.title.length > 32
+                                            ? `${queue.data.title.slice(0, 32)}...`
+                                            : queue.data.title
                                         }</span>
                                       </DropdownMenuItem>
                                     ))
@@ -166,17 +167,17 @@ export function Monitor() {
                               <DropdownMenuPortal>
                                 <DropdownMenuSubContent className="dark">
                                   {
-                                    room?.queues.map((queue, index) => (
+                                    room?.queues.map((queue) => (
                                       <DropdownMenuItem
                                         key={queue.id}
                                         onClick={() => {
                                           addQueue.mutate({ roomId: room?.id ?? '', type: song.type, data: song, order: queue.order + 1 })
                                         }}
                                       >
-                                        <img src={convertQueueMeta(queue.data).thumb} className="w-5 h-5 object-cover rounded" /> <span className="ml-2">#{queue.order} • {
-                                          convertQueueMeta(queue.data).title.length > 32
-                                            ? `${convertQueueMeta(queue.data).title.slice(0, 32)}...`
-                                            : convertQueueMeta(queue.data).title
+                                        <Image alt="song" src={queue.data.thumb} className="w-5 h-5 object-cover rounded" /> <span className="ml-2">#{queue.order} • {
+                                          queue.data.title.length > 32
+                                            ? `${queue.data.title.slice(0, 32)}...`
+                                            : queue.data.title
                                         }</span>
                                       </DropdownMenuItem>
                                     ))

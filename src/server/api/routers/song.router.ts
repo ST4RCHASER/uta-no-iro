@@ -1,18 +1,10 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { z } from "zod";
-
-
 import { createTRPCRouter, publicProcedure } from "@uta/server/api/trpc";
 import { db } from "@uta/server/db";
 import { observable } from '@trpc/server/observable';
-import EventEmitter from "events";
-import { addQueue, changeQueueOrder, playSong, removeSong } from "./roomService";
-import { search } from "./searchService";
-export const ee = new EventEmitter();
+import { addQueue, changeQueueOrder, getRoomHistory, playSong, removeSong } from "./room.service";
+import { search } from "./search.service";
+import { z } from "zod";
+import { ee } from "./room.router";
 
 export const songRouter = createTRPCRouter({
   onBroadcast: publicProcedure
@@ -20,8 +12,14 @@ export const songRouter = createTRPCRouter({
     .subscription(async ({input}) => {
       return observable<string>((emit) => {
         const onAdd = (data: string) => {
-          if (JSON.parse(data).roomId === input.roomId) {
-            emit.next(data);
+          try { 
+            const parsed = JSON.parse(data) as { roomId: string }
+            if (parsed.roomId === input.roomId) { 
+              emit.next(data)
+            }
+          }
+          catch (e) { 
+            console.error(`[${input.roomId}] Failed to parse broadcast event data`, e)
           }
         };
         ee.on('cmd', onAdd);
@@ -62,20 +60,7 @@ export const songRouter = createTRPCRouter({
     }),
   history: publicProcedure
     .input(z.object({ roomId: z.string() }))
-    .query(async ({ input }) => {
-      const history = await db.songQueue.findMany({
-        where: {
-          roomId: input.roomId,
-          playedAt: {
-            not: null
-          }
-        },
-        orderBy: {
-          playedAt: 'desc'
-        }
-      })
-      return history
-    }),
+    .query(async ({ input }) => getRoomHistory(input.roomId)),
   play: publicProcedure
     .input(z.object({ roomId: z.string(), queueId: z.string().optional() }))
     .mutation(async ({ input }) => playSong(input.roomId, input.queueId)),
