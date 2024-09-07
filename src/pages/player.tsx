@@ -90,9 +90,9 @@ export function Monitor() {
           case 'NEXT':
             break;
           case 'SEEK':
-            playerRef?.seekTo(event.payload.sec);
+            playerRef?.seekTo(event?.payload?.sec);
             if (hlsPlayerRef.current) {
-              hlsPlayerRef.current.currentTime = event.payload.sec;
+              hlsPlayerRef.current.currentTime = event?.payload?.sec ?? 0;
             }
             break;
           case 'RESTART':
