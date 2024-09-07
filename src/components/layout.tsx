@@ -25,7 +25,7 @@ export function Layout({ children, title, description}: { children: React.ReactN
                 <link rel="icon" href="/favicon.ico" />
             </Head>
             <main className="dark">
-                <div className="fixed bottom-0 left-0 z-50 w-full h-16 bg-white border-t border-gray-200 dark:bg-gray-700 dark:border-gray-600">
+                <div className="fixed bottom-0 left-0 z-50 w-full h-16 bg-white border-t border-gray-200 dark:bg-gray-700 dark:border-gray-600 transition-all duration-300 translate-y-0 sm:translate-y-full">
                     <div className="grid h-full max-w-lg grid-cols-4 mx-auto font-medium">
                         <Link href="/remote" className="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group">
                         <button type="button" className="inline-flex flex-col items-center justify-center px-5 hover:bg-gray-50 dark:hover:bg-gray-800 group text-white">
@@ -54,7 +54,7 @@ export function Layout({ children, title, description}: { children: React.ReactN
                         
                     </div>
                 </div>
-                <aside id="cta-button-sidebar" className={`fixed top-0 left-0 z-40 w-64 h-screen transition-transform -translate-x-full sm:translate-x-0 dark hover:opacity-100 transition duration-300 ${
+                <aside id="cta-button-sidebar" className={`fixed top-0 left-0 z-40 w-64 h-screen -translate-x-full sm:translate-x-0 dark hover:opacity-100 transition-all duration-300 ${
                     isInPlayerPage ? 'opacity-0' : 'opacity-100'
                     }`} aria-label="Sidebar">
                     <div className="h-full px-3 py-4 overflow-y-auto bg-gray-50 dark:bg-gray-800">
