@@ -1,19 +1,33 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+import { useDeviceType } from "@uta/hooks/useDeviceType";
 import { useRoom } from "@uta/hooks/useRoom";
 import Head from "next/head"
 import Link from "next/link"
-import { RxLaptop, RxMix, RxPerson, RxPlay, RxRows, RxTokens } from "react-icons/rx";
+import { useRouter } from "next/router";
+import { useEffect, useState } from "react";
+import { RxLaptop, RxMix, RxPerson, RxPlay, RxReset, RxRows, RxTokens } from "react-icons/rx";
 export function Layout({ children, title, description}: { children: React.ReactNode, title?: string, description?: string }) {
     const room = useRoom()
+    const router = useRouter()
+
+    const [isInPlayerPage, setIsInPlayerPage] = useState(false)
+    useEffect(() => {
+        setIsInPlayerPage(router.pathname === '/player')
+    }, [router.pathname])
+
+    const isMobileOrTablet = useDeviceType() !== 'Desktop'
 
     return (
         <>
             <Head>
-                <title>Uta no iro - Room</title>
+                <title>Uta no iro • Operating</title>
                 <meta name="description" content="" />
                 <link rel="icon" href="/favicon.ico" />
             </Head>
             <main>
-                <aside id="cta-button-sidebar" className="fixed top-0 left-0 z-40 w-64 h-screen transition-transform -translate-x-full sm:translate-x-0 dark" aria-label="Sidebar">
+                <aside id="cta-button-sidebar" className={`fixed top-0 left-0 z-40 w-64 h-screen transition-transform -translate-x-full sm:translate-x-0 dark hover:opacity-100 transition duration-300 ${
+                    isInPlayerPage ? 'opacity-0' : 'opacity-100'
+                    }`} aria-label="Sidebar">
                     <div className="h-full px-3 py-4 overflow-y-auto bg-gray-50 dark:bg-gray-800">
                         <div className="w-full overflow-ellipsis overflow-hidden text-center">
                             <div className="flex items-center justify-center py-4 text-white font-bold mx-auto mb-2 rounded-lg bg-gradient-to-tr from-green-500 to-green-900 text-3xl relative">
@@ -25,29 +39,41 @@ export function Layout({ children, title, description}: { children: React.ReactN
                                     <RxPlay />
                                 </div>
                                 <div className="inline-block animate-marquee-infinite">
-                                    <span>The Last Frontier / AZKi × 星街すいせい</span>  
+                                    <span>{
+                                        room?.states && JSON.parse(room?.states).track?.title || "No track playing"
+                                    }</span>  
                                 </div>
                             </div>
                         </div>
                         <div className=" border-gray-500 my-3 border-t"></div>
                         <ul className="space-y-2 font-medium">
-                            <li>
-                                <Link href="/player" className="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group">
-                                    <RxLaptop />
-                                    <span className="ms-3">Player</span>
-                                </Link>
-                            </li>
+                            {
+                                !isMobileOrTablet && (room?.states && JSON.parse(room?.states).updatedAt < Date.now() - 3000) && (
+                                    <li>
+                                        <Link href="/player" className="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group">
+                                            <RxLaptop />
+                                            <span className="ms-3">Player</span>
+                                        </Link>
+                                    </li>
+                                )
+                            }
                             <li>
                                 <Link href="/remote" className="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group">
                                     <RxMix />
                                     <span className="flex-1 ms-3 whitespace-nowrap">Remote</span>
-                                    <span className="inline-flex items-center justify-center w-3 h-3 p-3 ms-3 text-sm font-medium text-purple-800 bg-purple-100 rounded-full dark:bg-purple-900 dark:text-purple-300">3</span>
+                                    <span className="inline-flex items-center justify-center w-3 h-3 p-3 ms-3 text-sm font-medium text-purple-800 bg-purple-100 rounded-full dark:bg-purple-900 dark:text-purple-300">{ room?.queues?.length ?? 0 }</span>
                                 </Link>
                             </li>
                             <li>
                                 <Link href="/search" className="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group">
                                     <RxRows />
                                     <span className="flex-1 ms-3 whitespace-nowrap">Search</span>
+                                </Link>
+                            </li>
+                            <li>
+                                <Link href="/history" className="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group">
+                                    <RxReset />
+                                    <span className="flex-1 ms-3 whitespace-nowrap">History</span>
                                 </Link>
                             </li>
                             <li>

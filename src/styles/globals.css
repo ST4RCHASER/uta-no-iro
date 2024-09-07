@@ -8,6 +8,14 @@
   font-family: 'Kanit', sans-serif;
 }
 
+html {
+  background-color: black;
+}
+
+main {
+  background-color: black;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

@@ -26,7 +26,7 @@ model Room {
 }
 
 model SongQueue {
-    id        Int      @id @default(autoincrement())
+    id        String      @id @default(cuid())
     order     Int
     roomId    String
     room      Room     @relation(fields: [roomId], references: [id])
