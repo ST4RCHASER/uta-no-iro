@@ -6,14 +6,28 @@
 
 * {
   font-family: 'Kanit', sans-serif;
+  color-scheme: dark;
 }
 
 html {
   background-color: black;
+  color-scheme: dark;
 }
 
 main {
   background-color: black;
+}
+
+@media (prefers-color-scheme: dark) {
+  html {
+    color-scheme: dark;
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  html {
+    color-scheme: dark;
+  }
 }
 
 @layer base {

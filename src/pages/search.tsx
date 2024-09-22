@@ -22,7 +22,6 @@ import {
 import { Input } from "@uta/shadcn/components/ui/input"
 import { api } from "@uta/utils/api"
 import { RxCaretSort, RxCircle, RxClipboard, RxDoubleArrowLeft, RxDoubleArrowRight, RxMagnifyingGlass, RxPlay, RxPlusCircled, RxReload, RxShare1, RxShare2 } from "react-icons/rx"
-import { toast } from "sonner"
 import { getLink } from "@uta/utils/convert"
 import Image from "next/image"
 
@@ -30,17 +29,7 @@ export function Monitor() {
   const room = useRoom()
   const playerBroadcast = api.songs.broadcastPlayerCommand.useMutation()
   const search = api.songs.search.useMutation()
-  const addQueue = api.songs.addToQueue.useMutation({
-    onMutate: () => { 
-      toast.info('Adding song to queue...')
-    },
-    onSuccess: () => {
-      toast.success('Song added to queue')
-    },
-    onError: () => {
-      toast.error('Failed to add song to queue')
-    }
-  })
+  const addQueue = api.songs.addToQueue.useMutation()
   const handleSearch = async (keyword: string) => {
     search.mutate({ roomId: room?.id ?? '', text: keyword })
   }
