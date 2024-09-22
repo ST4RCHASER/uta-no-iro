@@ -57,74 +57,72 @@ export function Monitor() {
 
   // Youtube Player
   useEffect(() => {
-    let createdEvent: (e: KeyboardEvent) => void;
     if (playerRef?.playerInfo) { 
       setPlayerState({
         ...playerState,
         currentTime: playerRef?.playerInfo.currentTime,
         duration: playerRef?.playerInfo.duration,
       })
-      createdEvent = ((e: KeyboardEvent) => {
-        if (lastSent + 50 > Date.now()) return;
-        lastSent = Date.now();
-        if (e.key == ' ' && searchKeyword.length === 0) {
-          onData(JSON.stringify({ type: 'TOGGLE_PLAY', payload: null }))
-          return
-        }
-        if (e.key == 'Insert') {
-          console.log('Insert', pickSong);
-          if (pickSong) {
-            const song = search.data?.find((track) => track.id === pickSong);
-            if (song) {
-              addQueue.mutate({ roomId: room?.id ?? '', type: song.type, data: song, order: (room?.queues.length ?? 0) + 1 })
-              setSearchKeyword('');
-            }
-          }
-        }
-        if (e.key == 'End') {
-          lastSent = Date.now();
-          onData(JSON.stringify({ type: 'NEXT', payload: null }))
-          return
-        }
-        if (e.key == 'Home') {
-          onData(JSON.stringify({ type: 'RESTART', payload: null }))
-          return
-        }
-        if (e.key == 'ArrowLeft') {
-          try {
-            if (playerRef) {
-              playerRef?.seekTo(playerRef?.playerInfo.currentTime - 10);
-            }
-            if (hlsPlayerRef.current) {
-              hlsPlayerRef.current.currentTime = hlsPlayerRef.current.currentTime - 10;
-            }
-          } finally {
-            return
-          }
-        }
-        if (e.key == 'ArrowRight') {
-          try {
-            if (playerRef) {
-              playerRef?.seekTo(playerRef?.playerInfo.currentTime + 10);
-            }
-            if (hlsPlayerRef?.current) {
-              hlsPlayerRef.current.currentTime = hlsPlayerRef.current.currentTime + 10;
-            }
-          } finally {
-            return
-          }
-        }
-        if (e.key.length !== 1) return;
-        if (searchBoxRef?.current) {
-          searchBoxRef.current.focus();
-        }
-        if (!searchKeyword) {
-          setSearchKeyword(e.key.slice(0, 1));
-        }
-      })
-        
-        window.addEventListener('keydown', createdEvent)
     }
+    const createdEvent = ((e: KeyboardEvent) => {
+      if (lastSent + 50 > Date.now()) return;
+      lastSent = Date.now();
+      if (e.key == ' ' && searchKeyword.length === 0) {
+        onData(JSON.stringify({ type: 'TOGGLE_PLAY', payload: null }))
+        return
+      }
+      if (e.key == 'Insert') {
+        console.log('Insert', pickSong);
+        if (pickSong) {
+          const song = search.data?.find((track) => track.id === pickSong);
+          if (song) {
+            addQueue.mutate({ roomId: room?.id ?? '', type: song.type, data: song, order: (room?.queues.length ?? 0) + 1 })
+            setSearchKeyword('');
+          }
+        }
+      }
+      if (e.key == 'End') {
+        lastSent = Date.now();
+        onData(JSON.stringify({ type: 'NEXT', payload: null }))
+        return
+      }
+      if (e.key == 'Home') {
+        onData(JSON.stringify({ type: 'RESTART', payload: null }))
+        return
+      }
+      if (e.key == 'ArrowLeft') {
+        try {
+          if (playerRef) {
+            playerRef?.seekTo(playerRef?.playerInfo.currentTime - 10);
+          }
+          if (hlsPlayerRef.current) {
+            hlsPlayerRef.current.currentTime = hlsPlayerRef.current.currentTime - 10;
+          }
+        } finally {
+          return
+        }
+      }
+      if (e.key == 'ArrowRight') {
+        try {
+          if (playerRef) {
+            playerRef?.seekTo(playerRef?.playerInfo.currentTime + 10);
+          }
+          if (hlsPlayerRef?.current) {
+            hlsPlayerRef.current.currentTime = hlsPlayerRef.current.currentTime + 10;
+          }
+        } finally {
+          return
+        }
+      }
+      if (e.key.length !== 1) return;
+      if (searchBoxRef?.current) {
+        searchBoxRef.current.focus();
+      }
+      if (!searchKeyword) {
+        setSearchKeyword(e.key.slice(0, 1));
+      }
+    })
+    window.addEventListener('keydown', createdEvent)
     return () => {
       if (createdEvent) {
         window.removeEventListener('keydown', createdEvent)
