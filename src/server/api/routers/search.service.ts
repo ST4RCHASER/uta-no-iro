@@ -3,9 +3,28 @@ import youtubeSearch from 'youtube-search-api';
 import * as cheerio from 'cheerio';
 import langdetect from 'langdetect';
 import { getRoomConfig } from './room.service';
-import type { YoutubeSearchResponse } from '@uta/types/yt.types';
+import type { Item, YoutubeSearchResponse } from '@uta/types/yt.types';
 
 const cleanText = (text: string) => text.replace(/[\n\t]/g, '').trim()
+export const getYoutubeLink = async (url: string) => { 
+    try {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+        const item = await (youtubeSearch.GetVideoDetails(url) as Promise<Item>)
+        console.log('AAAA', item)
+        if (!item) return null
+        return {
+            title: cleanText(item.title),
+            id: item.id,
+            thumb: item.thumbnail.thumbnails[0]?.url ?? '',
+            type: 'youtube',
+            description: `${item.isLive ? '[LIVE] ' : ''}${item.channel}  •  ${item.length?.simpleText || item.keywords?.join(', ')}`,
+            raw: item
+        }
+    } catch (e){
+        console.log('Failed to get youtube link',e)
+        return null
+    }
+}
 export const search = async (roomId: string, text: string) => { 
     const config = await getRoomConfig(roomId)
     const allowYoutube = Boolean(typeof config.allowSearchYoutube === 'undefined' ? true : config.allowSearchYoutube)

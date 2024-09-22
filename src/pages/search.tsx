@@ -21,24 +21,64 @@ import {
 } from "@uta/shadcn/components/ui/dropdown-menu"
 import { Input } from "@uta/shadcn/components/ui/input"
 import { api } from "@uta/utils/api"
-import { RxCaretSort, RxCircle, RxClipboard, RxDoubleArrowLeft, RxDoubleArrowRight, RxMagnifyingGlass, RxPlay, RxPlusCircled, RxReload, RxShare1, RxShare2 } from "react-icons/rx"
+import { RxCaretSort, RxCircle, RxClipboard, RxDoubleArrowLeft, RxDoubleArrowRight, RxMagnifyingGlass, RxPlay, RxPlus, RxPlusCircled, RxReload, RxShare1, RxShare2 } from "react-icons/rx"
 import { getLink } from "@uta/utils/convert"
 import Image from "next/image"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@uta/shadcn/components/ui/dialog"
+import { Label } from "@uta/shadcn/components/ui/label"
+import { useState } from "react"
 
 export function Monitor() {
   const room = useRoom()
   const playerBroadcast = api.songs.broadcastPlayerCommand.useMutation()
   const search = api.songs.search.useMutation()
+  const getYTLink = api.songs.getYoutubeLink.useMutation({
+    onSuccess: (data) => {
+      if (data) {
+        addQueue.mutate({ roomId: room?.id ?? '', type: 'youtube', data: data, order: (room?.queues.length ?? 0) + 1 })
+        setYtLink('')
+        setYtLinkError('')
+        setYtLinkDialog(false)
+        return
+      }
+      setYtLinkError('No video found')
+    }
+  })
   const addQueue = api.songs.addToQueue.useMutation()
+  const [ytLink, setYtLink] = useState<string>('')
+  const [ytLinkError, setYtLinkError] = useState<string>('')
+  const [ytLinkDialog, setYtLinkDialog] = useState<boolean>(false)
   const handleSearch = async (keyword: string) => {
     search.mutate({ roomId: room?.id ?? '', text: keyword })
+  }
+
+  const isYoutubeLink = (link: string) => {
+    const regex = /^(http(s)?:\/\/)?((w){3}.)?youtu(be|.be)?(\.com)?/gm
+    return regex.test(link)
+  }
+
+  const getYTIdFromLink = (link: string) => {
+    const regex = /^(http(s)?:\/\/)?((w){3}.)?youtu(be|.be)?(\.com)?\/(watch\?v=|embed\/|v\/)?[a-zA-Z0-9_-]{11}/gm
+    if (regex.test(link)) {
+      const url = new URL(link.startsWith('http') ? link : `https://${link}`)
+      return url.searchParams.get('v') ?? url.pathname.split('/').pop() ?? ''
+    }
+    return link
+  }
+
+  const handleAddLink = async () => { 
+    if (!isYoutubeLink(ytLink)) {
+      setYtLinkError('Invalid youtube link')
+      return
+    }
+    getYTLink.mutate({ url: getYTIdFromLink(ytLink) })
   }
 
 
   return (
     <>
       <Layout title='Search' description='Search and add queue here'>
-        <form className="flex w-full max-w-sm items-center space-x-2" onSubmit={
+        <form className="flex w-full max-w-xl items-center space-x-2" onSubmit={
           (e) => {
             e.preventDefault()
             void handleSearch((e.target as unknown as {value: string}[])[0]?.value ?? '')
@@ -53,6 +93,73 @@ export function Monitor() {
             }
             <span className="ml-2">Search</span>  
           </Button>
+          <Dialog open={ytLinkDialog} onOpenChange={(open) => setYtLinkDialog(open)}>
+            <DialogTrigger asChild>
+              <Button disabled={search.isPending} className="bg-red-600 hover:bg-red-800" onClick={
+                () => {
+                  setYtLink('')
+                  setYtLinkError('')
+                  // if clipboard is youtube link
+                  navigator.clipboard.readText().then((text) => {
+                    if (isYoutubeLink(text)) {
+                      setYtLink(text)
+                    }
+                  }).catch(() => {
+                    // do nothing
+                  })
+                }
+              }>
+                {
+                  search.isPending
+                    ? <RxReload className="animate-spin" />
+                    : <RxPlus />
+                }
+                <span className="ml-2">Add youtube link</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Add youtube link</DialogTitle>
+                <DialogDescription>
+                  Please input the youtube link you want to add
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex items-center space-x-2">
+                <div className="grid flex-1 gap-2">
+                  <Label htmlFor="link" className="sr-only">
+                    Link
+                  </Label>
+                  <Input
+                    id="link"
+                    value={ytLink}
+                    onChange={(e) => {
+                      setYtLink(e.target.value)
+                      setYtLinkError('')
+                      if (!isYoutubeLink(e.target.value)) {
+                        setYtLinkError('Invalid youtube link')
+                      }
+                    }}
+                  />
+                  {
+                    ytLinkError && <p className="text-red-500 text-sm">{ytLinkError}</p>
+                  }
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  disabled={ytLinkError.length > 0 || ytLink.length === 0 || getYTLink.isPending || addQueue.isPending}
+                  
+                  onClick={
+                  () => {
+                    void handleAddLink()
+                  }
+                }>
+                  {search.isPending || getYTLink.isPending || addQueue.isPending
+                ? <RxReload className="animate-spin" />
+                    : <RxPlus />} <p className="ml-1">Add</p></Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </form>
         <div className="mt-8">
           {

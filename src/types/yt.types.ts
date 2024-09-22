@@ -9,6 +9,8 @@ export interface Item {
     thumbnail: Thumbnail
     title: string
     channelTitle: string
+    keywords: string[]
+    channel: string
     shortBylineText: ShortBylineText
     length: Length
     isLive: boolean

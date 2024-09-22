@@ -2,7 +2,7 @@ import { createTRPCRouter, publicProcedure } from "@uta/server/api/trpc";
 import { db } from "@uta/server/db";
 import { observable } from '@trpc/server/observable';
 import { addQueue, changeQueueOrder, getRoomHistory, playSong, removeSong } from "./room.service";
-import { search } from "./search.service";
+import { getYoutubeLink, search } from "./search.service";
 import { z } from "zod";
 import { ee } from "./room.router";
 
@@ -81,4 +81,7 @@ export const songRouter = createTRPCRouter({
     .input(z.object({ text: z.string(), roomId: z.string() }))
     .mutation(async ({ input }) => search(input.roomId, input.text)
   ),
+  getYoutubeLink: publicProcedure
+    .input(z.object({ url: z.string() }))
+    .mutation(async ({ input }) => getYoutubeLink(input.url)),
 });

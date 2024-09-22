@@ -299,7 +299,6 @@ export function Monitor() {
                           addQueue.mutate({ roomId: room?.id ?? '', type: track.type, data: track, order: (room?.queues.length ?? 0) + 1 })
                           setSearchKeyword('');
                         }}>
-                       
                           <div>
                             <Image alt={track.id} width={1280} height={720} src={track?.thumb || ''} className="h-auto w-24 rounded-lg" />
                           </div>
