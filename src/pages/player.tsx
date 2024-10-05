@@ -51,15 +51,21 @@ export function Monitor() {
       })
     }
     if(isReady) {
-      if(htmlPlayerRef.current) {
-        htmlPlayerRef.current.volume = masterSlider / 100;
-      }
-      if(hlsPlayerRef.current) {
-        hlsPlayerRef.current.volume = masterSlider / 100;
-      }
-      if(playerRef) {
-        playerRef.setVolume(masterSlider);
-      }
+      try  {
+        if(htmlPlayerRef.current) {
+          htmlPlayerRef.current.volume = masterSlider / 100;
+        }
+      }catch {}
+      try {
+        if(hlsPlayerRef.current) {
+          hlsPlayerRef.current.volume = masterSlider / 100;
+        }
+      }catch {}
+      try {
+        if(playerRef) {
+          playerRef.setVolume(masterSlider);
+        }
+      }catch {}
     }
   }, [JSON.stringify(playerState), isReady])
 
@@ -446,7 +452,7 @@ export function Monitor() {
   return (
     <div>
       <Layout title="Player" description="No queue right now, please add some song!">
-        {/* <div className="z-40 fixed h-screen w-screen overflow-hidden"></div> */}
+        <div className="z-40 fixed h-screen w-screen overflow-hidden"></div>
         <div className="dark overflow-hidden">
           <CommandDialog open={!!searchKeyword} onOpenChange={
             (open) => {
