@@ -76,7 +76,7 @@ export function Monitor() {
 
 
   return (
-    <>
+    <div>
       <Layout title='Search' description='Search and add queue here'>
         <form className="flex w-full max-w-xl items-center space-x-2" onSubmit={
           (e) => {
@@ -171,8 +171,8 @@ export function Monitor() {
                       <Card>
                         <div className="flex border-b py-3 cursor-pointer hover:shadow-md px-2 ">
                           <div className="w-64">
-                            <AspectRatio ratio={16 / 9}>
-                              <Image width={1280} height={720} alt="Image" className="rounded-md object-cover" src={song.thumb} />
+                            <AspectRatio ratio={16 / 9} className="overflow-hidden object-cover">
+                              <Image width={1280} height={720} alt="Image" className="rounded-md object-cover overflow-hidden" objectPosition="cover" src={song.thumb ||  'https://m1r.ai/Y45Fp.png'} />
                             </AspectRatio>
                          </div>
                           <div className="flex flex-col px-2 w-full">
@@ -247,7 +247,7 @@ export function Monitor() {
                                           addQueue.mutate({ roomId: room?.id ?? '', type: song.type, data: song, order: queue.order })
                                         }}
                                       >
-                                        <Image width={1280} height={720} alt="song" src={queue.data.thumb} className="w-5 h-5 object-cover rounded" /> <span className="ml-2">#{queue.order} • {
+                                        <Image width={1280} height={720} alt="song" src={queue.data.thumb || 'https://m1r.ai/Y45Fp.png'} className="w-5 h-5 object-cover rounded" /> <span className="ml-2">#{queue.order} • {
                                           queue.data.title.length > 32
                                             ? `${queue.data.title.slice(0, 32)}...`
                                             : queue.data.title
@@ -270,7 +270,7 @@ export function Monitor() {
                                           addQueue.mutate({ roomId: room?.id ?? '', type: song.type, data: song, order: queue.order + 1 })
                                         }}
                                       >
-                                        <Image width={1280} height={720} alt="song" src={queue.data.thumb} className="w-5 h-5 object-cover rounded" /> <span className="ml-2">#{queue.order} • {
+                                        <Image width={1280} height={720} alt="song" src={queue.data.thumb || 'https://m1r.ai/Y45Fp.png'} className="w-5 h-5 object-cover rounded" /> <span className="ml-2">#{queue.order} • {
                                           queue.data.title.length > 32
                                             ? `${queue.data.title.slice(0, 32)}...`
                                             : queue.data.title
@@ -327,7 +327,7 @@ export function Monitor() {
          }
         </div>
       </Layout>
-      </>
+      </div>
   )
 }
 

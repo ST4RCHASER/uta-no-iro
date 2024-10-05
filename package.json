@@ -7,6 +7,7 @@
     "prebuild": "prisma generate && prisma migrate deploy",
     "build:next": "cross-env NODE_ENV=production next build",
     "build:server": "tsc --project tsconfig.server.json",
+    "start:fetch": "cross-env NODE_ENV=production tsx watch src/server/fetch.ts --tsconfig tsconfig.server.json",
     "build": "rm -rf dist && run-s build:*",
     "dev:wss": "cross-env PORT=3001 tsx watch src/server/api/wsServer.ts --tsconfig tsconfig.server.json",
     "dev:next": "next dev --hostname 0.0.0.0",

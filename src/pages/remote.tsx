@@ -1,8 +1,10 @@
 import { AspectRatio } from "@radix-ui/react-aspect-ratio"
 import Layout from "@uta/components/layout"
 import { useRoom } from "@uta/hooks/useRoom"
+import { Button } from "@uta/shadcn/components/ui/button"
 import {
   Card,
+  CardContent,
 } from "@uta/shadcn/components/ui/card"
 import {
   DropdownMenu,
@@ -30,28 +32,35 @@ export function Monitor() {
   const deleteQueue = api.songs.deleteQueue.useMutation()
   const broadcastPlayerCommand = api.songs.broadcastPlayerCommand.useMutation()
   const [fakeSeeker, setFakeSeeker] = useState(0);
+  const [fakeMasterSlider, setFakeMasterSlider] = useState(0);
+  const [fakeKaraokeSlider, setFakeKaraokeSlider] = useState(0);
 
   useEffect(() => {
     if (room?.states) {
       setFakeSeeker(0)
+      setFakeMasterSlider(0)
+      setFakeKaraokeSlider(0)
     }
   }, [JSON.stringify(room?.states)])
 
   return (
-    <>
+    <div>
       <Layout title="Remote" description="Controll player and queues">
         <div className="flex items-center justify-center">
           <div className="w-full">
+          <div className="text-red-500">
+                </div>
             <div className="bg-white border-slate-100 dark:bg-slate-800 dark:border-slate-500 border-b rounded-t-xl p-4 pb-6 sm:p-10 sm:pb-8 lg:p-6 xl:p-10 xl:pb-8 space-y-6 sm:space-y-8 lg:space-y-6 xl:space-y-8  items-center">
               <div className="flex items-center space-x-4">
+                
                 <Image src={
-                  room?.states?.track?.thumb ?? 'https://via.placeholder.com/88'
+                  !!room?.states?.track?.thumb ? room.states.track.thumb : 'https://m1r.ai/Y45Fp.png'
                 } alt={
                    room?.states?.track?.title ?? 'No track'
                 } width="88" height="88" className="flex-none rounded-lg bg-slate-100" loading="lazy" />
                 <div className="min-w-0 flex-auto space-y-1 font-semibold">
                   <p className="text-purple-500 dark:text-purple-400 text-sm leading-6">
-                    <abbr title="Track">Soruce:</abbr> <span className="capitalize">
+                    <abbr title="Track">Source:</abbr> <span className="capitalize">
                       {
                         room?.states?.track?.type ?? 'No track playing'
                       }
@@ -184,6 +193,107 @@ export function Monitor() {
         </div>
         <div className="mt-8">
           <h1 className="text-3xl font-bold">
+            Mixer
+          </h1>
+          <Card className="mt-4">
+          <CardContent>
+          <div className="my-4">Master</div>
+          <Slider max={100} step={1}
+          onValueChange={(value) => {
+            setFakeMasterSlider(value[0] ?? 0)
+            broadcastPlayerCommand.mutate({
+              roomId: room?.id ?? '',
+              cmd: JSON.stringify({
+                type: 'MASTER_VOLUME',
+                payload: {
+                  mas_vol: value[0]
+                }
+              })
+            })
+          }}
+          value={
+            fakeMasterSlider > 0 ? [fakeMasterSlider] : [room?.states?.masterVolume ? room.states.masterVolume : 0]
+          }
+          />
+          <div className="my-4">Karaoke
+            {room?.states?.track?.type !== 'remote' && (
+              <span className="text-red-500"> (Not supported)</span>
+            )}
+          </div>
+            <Slider max={100} min={1} step={1} 
+            onValueChange={(value) => { 
+              setFakeKaraokeSlider(value[0] ?? 0)
+              broadcastPlayerCommand.mutate({
+                roomId: room?.id ?? '',
+                cmd: JSON.stringify({
+                  type: 'AUDIO_CHANNEL_VOLUME',
+                  payload: {
+                    ch_vol: value[0]
+                  }
+                })
+              })
+            }}
+            value={
+              fakeKaraokeSlider > 0 ? [fakeKaraokeSlider] : [room?.states?.audioChannelVolume ? room.states.audioChannelVolume : 50]
+            }
+            disabled={
+              room?.states?.track?.type !== 'remote'
+            }
+            className={room?.states?.track?.type !== 'remote' ? 'opacity-50' : ''}
+            />
+            <div className="flex justify-between mt-4">
+              <Button
+                onClick={() => {
+                  setFakeKaraokeSlider(1)
+                  broadcastPlayerCommand.mutate({
+                    roomId: room?.id ?? '',
+                    cmd: JSON.stringify({
+                      type: 'AUDIO_CHANNEL_VOLUME',
+                      payload: {
+                        ch_vol: 1
+                      }
+                    })
+                  })
+                }}
+                disabled={room?.states?.track?.type !== 'remote'}
+              >Vocal</Button>
+              <Button
+                onClick={() => {
+                  setFakeKaraokeSlider(50)
+                  broadcastPlayerCommand.mutate({
+                    roomId: room?.id ?? '',
+                    cmd: JSON.stringify({
+                      type: 'AUDIO_CHANNEL_VOLUME',
+                      payload: {
+                        ch_vol: 50
+                      }
+                    })
+                  })
+                }}
+                disabled={room?.states?.track?.type !== 'remote'}
+              >Mixed</Button>
+              <Button
+                onClick={() => {
+                  setFakeKaraokeSlider(100)
+                  broadcastPlayerCommand.mutate({
+                    roomId: room?.id ?? '',
+                    cmd: JSON.stringify({
+                      type: 'AUDIO_CHANNEL_VOLUME',
+                      payload: {
+                        ch_vol: 100
+                      }
+                    })
+                  })
+                }}
+                disabled={room?.states?.track?.type !== 'remote'}
+              >Karaoke</Button>
+
+            </div>
+          </CardContent>
+          </Card>
+        </div>
+        <div className="mt-8">
+          <h1 className="text-3xl font-bold">
             Queues
           </h1>
           <p className="opacity-70">
@@ -200,7 +310,7 @@ export function Monitor() {
                           <div className="flex border-b py-3 cursor-pointer hover:shadow-md px-2 ">
                             <div className="w-16">
                               <AspectRatio ratio={16 / 9}>
-                                <Image width={1280} height={720} alt="Image" className="rounded-md object-cover" src={queueTop.data.thumb} />
+                                <Image width={1280} height={720} alt="Image" className="rounded-md object-cover" src={queueTop.data.thumb || 'https://m1r.ai/Y45Fp.png'} />
                               </AspectRatio>
                             </div>
                             <div className="flex flex-col px-2 w-full">
@@ -265,7 +375,7 @@ export function Monitor() {
                                             changeOrder.mutate({ roomId: room.id, queueId: queueTop.id, newQueueOrder: (queue.order - 1) < 1 ? 1 : queue.order - 1 })
                                           }}
                                         >
-                                          <Image width={1280} height={720} alt="song" src={queue.data.thumb} className="w-5 h-5 object-cover rounded" /> <span className="ml-2">#{queue.order} • {
+                                          <Image width={1280} height={720} alt="song" src={queue.data.thumb || 'https://m1r.ai/Y45Fp.png'} className="w-5 h-5 object-cover rounded" /> <span className="ml-2">#{queue.order} • {
                                             queue.data.title.length > 32
                                               ? `${queue.data.title.slice(0, 32)}...`
                                               : queue.data.title
@@ -289,7 +399,7 @@ export function Monitor() {
                                             changeOrder.mutate({ roomId: room.id, queueId: queueTop.id, newQueueOrder: queue.order })
                                           }}
                                         >
-                                          <Image width={1280} height={720} alt="song" src={queue.data.thumb} className="w-5 h-5 object-cover rounded" /> <span className="ml-2">#{queue.order} • {
+                                          <Image width={1280} height={720} alt="song" src={queue.data.thumb || 'https://m1r.ai/Y45Fp.png'} className="w-5 h-5 object-cover rounded" /> <span className="ml-2">#{queue.order} • {
                                             queue.data.title.length > 32
                                               ? `${queue.data.title.slice(0, 32)}...`
                                               : queue.data.title
@@ -353,7 +463,7 @@ export function Monitor() {
           </div>
         </div>
       </Layout>
-      </>
+      </div>
   )
 }
 

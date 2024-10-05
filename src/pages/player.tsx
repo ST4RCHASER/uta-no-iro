@@ -25,6 +25,17 @@ export function Monitor() {
   const [searchBounce, setSearchBounce] = useState<NodeJS.Timeout>();
   const addQueue = api.songs.addToQueue.useMutation()
   const [pickSong, setPickSong] = useState<string>();
+
+  const htmlPlayerRef = useRef<HTMLVideoElement | null>(null);
+  const [karaokeSlider, setKaraokeSlider] = useState(100);
+  const [masterSlider, setMasterSlider] = useState(50);
+  const htmlPlayerAudioContextRef = useRef<AudioContext | null>(null);
+  const htmlPlayerSourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const htmlPlayerLeftGainRef = useRef<GainNode | null>(null);
+  const htmlPlayerRightGainRef = useRef<GainNode | null>(null);
+  const htmlPlayerSplitterRef = useRef<ChannelSplitterNode | null>(null);
+
+
   let lastSent = Date.now();
 
   useEffect(() => {
@@ -33,15 +44,30 @@ export function Monitor() {
         id: room.id,
         data: {
           ...playerState,
+          audioChannelVolume: karaokeSlider,
+          masterVolume: masterSlider,
           updatedAt: new Date().getTime()
         }
       })
+    }
+    if(isReady) {
+      if(htmlPlayerRef.current) {
+        htmlPlayerRef.current.volume = masterSlider / 100;
+      }
+      if(hlsPlayerRef.current) {
+        hlsPlayerRef.current.volume = masterSlider / 100;
+      }
+      if(playerRef) {
+        playerRef.setVolume(masterSlider);
+      }
     }
   }, [JSON.stringify(playerState), isReady])
 
   useEffect(() => { 
     if (room && room.states !== null && !isReady) { 
       setPlayerState(room.states);
+      setMasterSlider(room.states.masterVolume ?? 50);
+      setKaraokeSlider(room.states.audioChannelVolume ?? 100);
       setIsReady(true);
     } else if (room && room.states === null && !isReady) {
       updater.mutate({
@@ -54,6 +80,112 @@ export function Monitor() {
       setIsReady(true);
     }
   }, [room])
+
+  // html player
+  useEffect(() => {
+    if(!htmlPlayerRef.current) {
+      htmlPlayerAudioContextRef.current = null;
+      htmlPlayerSourceNodeRef.current = null;
+      htmlPlayerLeftGainRef.current = null;
+      htmlPlayerRightGainRef.current = null;
+      htmlPlayerSplitterRef.current = null;
+      return;
+    }
+    const setupAudio = () => {
+      if(!htmlPlayerRef.current) {
+        console.log('Missing audio context or nodes');
+        return;
+      }
+      // Create a new AudioContext
+      htmlPlayerAudioContextRef.current = new AudioContext();
+
+      // Create source node from the video element
+      htmlPlayerSourceNodeRef.current = htmlPlayerAudioContextRef.current.createMediaElementSource(htmlPlayerRef.current);
+
+      // Create a channel splitter (splits left and right channels)
+      htmlPlayerSplitterRef.current = htmlPlayerAudioContextRef.current.createChannelSplitter(2);
+
+      // Create gain nodes to control the volume of left and right channels
+      htmlPlayerLeftGainRef.current = htmlPlayerAudioContextRef.current.createGain();
+      htmlPlayerRightGainRef.current = htmlPlayerAudioContextRef.current.createGain();
+
+      // Connect the splitter to left and right gain nodes
+      htmlPlayerSplitterRef.current.connect(htmlPlayerLeftGainRef.current, 0); // Left channel
+      htmlPlayerSplitterRef.current.connect(htmlPlayerRightGainRef.current, 1); // Right channel
+
+      // Connect left and right gains to the destination (speakers)
+      htmlPlayerLeftGainRef.current.connect(htmlPlayerAudioContextRef.current.destination);
+      htmlPlayerRightGainRef.current.connect(htmlPlayerAudioContextRef.current.destination);
+
+      // Connect the source node to the splitter
+      htmlPlayerSourceNodeRef.current.connect(htmlPlayerSplitterRef.current);
+    };
+
+
+    const onPlay = () => {
+      if(!htmlPlayerAudioContextRef.current) {
+        console.log('Setting up audio context');
+        setupAudio(); 
+      }
+    };
+    const onEnded = () => {
+      eventSender.mutate({
+        roomId: room?.id,
+        event: 'ENDED'
+      });
+    };
+  
+    if (htmlPlayerRef.current) {
+      // Attach event listeners
+      htmlPlayerRef.current.addEventListener('play', onPlay);
+      htmlPlayerRef.current.addEventListener('ended', onEnded);
+    }
+  
+    return () => {
+      // Cleanup event listeners and audio context
+      if (htmlPlayerRef.current) {
+        htmlPlayerRef.current.removeEventListener('play', onPlay);
+        htmlPlayerRef.current.removeEventListener('ended', onEnded);
+      }
+    };
+  }, [htmlPlayerRef.current]);
+
+
+  // html player track time
+  useEffect(() => {
+    setPlayerState({
+      ...playerState,
+      // is playing 
+      state: playerState.state !== 'idle' && playerState.state !== 'loading' && htmlPlayerRef?.current?.paused ? 'paused' : 'playing',
+      duration: htmlPlayerRef?.current?.duration ?? 0,
+      currentTime: htmlPlayerRef?.current?.currentTime ?? 0
+    });
+     if(playerState?.track?.type === 'remote') {
+      if(!htmlPlayerLeftGainRef.current || !htmlPlayerRightGainRef.current) {
+        console.log('No gain node found');
+        return;
+      }
+      const karaokeChannel = room?.states?.track?.karaChannel
+      // flip if right channel is karaoke
+      let value = karaokeSlider
+      if (karaokeChannel === 'L') {
+        value = 100 - value;
+      }
+      if (value === 50 || karaokeChannel === 'UNSUPORTED') {
+        // Stereo Mode (equal volume on both channels)
+        htmlPlayerLeftGainRef.current.gain.value = 0.6;
+        htmlPlayerRightGainRef.current.gain.value = 0.6;
+      } else if (value < 50) {
+        // Karaoke Mode (adjust based on slider position, left channel muted)
+        htmlPlayerLeftGainRef.current.gain.value = value / 50;
+        htmlPlayerRightGainRef.current.gain.value = 1;
+      } else {
+        // Vocal Mode (adjust based on slider position, right channel muted)
+        htmlPlayerLeftGainRef.current.gain.value = 1;
+        htmlPlayerRightGainRef.current.gain.value = (100 - value) / 50;
+      }
+     }
+  }, [Math.round(htmlPlayerRef.current?.currentTime ?? 0),htmlPlayerRef.current?.duration])
 
   // Youtube Player
   useEffect(() => {
@@ -98,6 +230,9 @@ export function Monitor() {
           if (hlsPlayerRef.current) {
             hlsPlayerRef.current.currentTime = hlsPlayerRef.current.currentTime - 10;
           }
+          if(htmlPlayerRef.current) {
+            htmlPlayerRef.current.currentTime = htmlPlayerRef.current.currentTime - 10;
+          }
         } finally {
           return
         }
@@ -109,6 +244,9 @@ export function Monitor() {
           }
           if (hlsPlayerRef?.current) {
             hlsPlayerRef.current.currentTime = hlsPlayerRef.current.currentTime + 10;
+          }
+          if(htmlPlayerRef.current) {
+            htmlPlayerRef.current.currentTime = htmlPlayerRef.current.currentTime + 10;
           }
         } finally {
           return
@@ -135,21 +273,46 @@ export function Monitor() {
     console.log('Player event', event,playerRef, hlsPlayerRef.current);
     try {
       switch (event.type) {
+        case 'AUDIO_CHANNEL_VOLUME':
+          console.log('Karaoke slider', event.payload?.ch_vol);
+          updateKaraokeSlider(event.payload?.ch_vol ?? 50);
+          break;
+        case 'MASTER_VOLUME':
+          console.log('Master slider', event.payload?.mas_vol);
+          updateMasterSlider(event.payload?.mas_vol ?? 50);
+          break;
         case 'TOGGLE_PLAY':
-          if (playerRef) {
-            if (playerState.state !== 'playing') {
-              playerRef?.playVideo();
-            } else {
-              playerRef?.pauseVideo();
+          try  {
+            if (playerRef) {
+              if (playerState.state !== 'playing') {
+                playerRef?.playVideo();
+              } else {
+                playerRef?.pauseVideo();
+              }
             }
-          }
-          if (hlsPlayerRef.current) {
-            if (hlsPlayerRef.current.paused) {
-              void hlsPlayerRef.current.play();
-            } else {
-              hlsPlayerRef.current.pause();
+          } catch {}
+          try  {
+            if (hlsPlayerRef.current) {
+              if (hlsPlayerRef.current.paused) {
+                void hlsPlayerRef.current.play();
+              } else {
+                hlsPlayerRef.current.pause();
+              }
             }
-          }
+          }catch {}
+          try {
+            if (htmlPlayerRef.current) {
+              if (htmlPlayerRef.current.paused) {
+                void htmlPlayerRef.current.play();
+              } else {
+                htmlPlayerRef.current.pause();
+                setPlayerState({
+                  ...playerState,
+                  state: 'paused'
+                });
+              }
+            }
+          } catch {}
           break
         case 'PLAY_TRACK':
           setPlayerState({
@@ -170,36 +333,76 @@ export function Monitor() {
           })
           break;
         case 'SEEK':
-          if (playerRef) {
-            playerRef?.seekTo(event?.payload?.sec ?? 0);
-          }
-          if (hlsPlayerRef.current) {
-            hlsPlayerRef.current.currentTime = event?.payload?.sec ?? 0;
-          }
+          try  {
+            if (playerRef) {
+              playerRef?.seekTo(event?.payload?.sec ?? 0);
+            }
+          }catch {}
+          try  {
+            if (hlsPlayerRef.current) {
+              hlsPlayerRef.current.currentTime = event?.payload?.sec ?? 0;
+            }
+          }catch {}
+          try  {
+            if (htmlPlayerRef.current) {
+              htmlPlayerRef.current.currentTime = event?.payload?.sec ?? 0;
+            }
+          } catch {}
           break;
         case 'RESTART':
-          if (playerRef) {
-            playerRef?.seekTo(0);
-          }
+          try  {
+            if (playerRef) {
+              playerRef?.seekTo(0);
+            }
+          } catch {}
+         try  {
           if (hlsPlayerRef.current?.currentTime) {
             hlsPlayerRef.current.currentTime = 0;
           }
+         } catch {}
+          try {
+            if (htmlPlayerRef.current?.currentTime) {
+              htmlPlayerRef.current.currentTime = 0;
+            }
+          } catch {}
           break;
         case 'PLAY':
-          if (playerRef) {
-            playerRef?.playVideo();
-          }
-          if (hlsPlayerRef.current?.paused) {
-            void hlsPlayerRef.current.play();
-          }
+          try {
+            if (playerRef) {
+              playerRef?.playVideo();
+            }
+          } catch {}
+          try {
+            if (hlsPlayerRef.current?.paused) {
+              void hlsPlayerRef.current.play();
+            }
+          } catch {}
+          try  {
+            if (htmlPlayerRef.current?.paused) {
+              void htmlPlayerRef.current.play();
+            }
+          } catch {}
           break;
         case 'PAUSE':
-          if (playerRef) {
-            playerRef?.pauseVideo();
-          }
-          if (hlsPlayerRef?.current && !hlsPlayerRef?.current?.paused) {
-            hlsPlayerRef.current.pause();
-          }
+          try {
+            if (playerRef) {
+              playerRef?.pauseVideo();
+            }
+          } catch {}
+          try  {
+            if (hlsPlayerRef?.current && !hlsPlayerRef?.current?.paused) {
+              hlsPlayerRef.current.pause();
+            }
+          } catch {}
+          try {
+            if (htmlPlayerRef?.current && !htmlPlayerRef?.current?.paused) {
+              htmlPlayerRef.current.pause();
+              setPlayerState({
+                ...playerState,
+                state: 'paused'
+              });
+            }
+          } catch {}
           break;
       }
     } catch (e) {
@@ -224,10 +427,26 @@ export function Monitor() {
     },1500))
   }
 
+    const updateKaraokeSlider = (value: number) => {
+      setKaraokeSlider(value);
+      setPlayerState({
+        ...playerState,
+        audioChannelVolume: value
+      });
+    };
+
+    const updateMasterSlider = (value: number) => {
+      setMasterSlider(value);
+      setPlayerState({
+        ...playerState,
+        masterVolume: value
+      });
+    };
+
   return (
-    <>
+    <div>
       <Layout title="Player" description="No queue right now, please add some song!">
-        <div className="z-40 fixed h-screen w-screen overflow-hidden"></div>
+        {/* <div className="z-40 fixed h-screen w-screen overflow-hidden"></div> */}
         <div className="dark overflow-hidden">
           <CommandDialog open={!!searchKeyword} onOpenChange={
             (open) => {
@@ -300,7 +519,7 @@ export function Monitor() {
                           setSearchKeyword('');
                         }}>
                           <div>
-                            <Image alt={track.id} width={1280} height={720} src={track?.thumb || ''} className="h-auto w-24 rounded-lg" />
+                            <Image alt={track.id} width={1280} height={720} src={track?.thumb || 'https://m1r.ai/Y45Fp.png'} className="h-auto w-24 rounded-lg" />
                           </div>
                           <div className="ml-2">
                             <p>{track.title}</p>
@@ -316,7 +535,7 @@ export function Monitor() {
             </Command>
           </CommandDialog>
         </div>
-        {/* {JSON.stringify(playerState)} */}
+        {JSON.stringify(playerState)}
         {playerState.state !=='idle' && <main className="flex min-h-screen flex-col items-center justify-center">
           <div className="max-w-xl mx-auto p-4">
             {playerState.track && playerState.track.type === 'youtube' && <div className="w-screen h-screen fixed left-0 top-0">
@@ -408,7 +627,7 @@ export function Monitor() {
             </div>}
             {
               playerState.track && playerState.track.type === 'niconico' && <div >
-                <HLSPlayer manifest={`https://nicovrc.net/proxy?https://www.nicovideo.jp${playerState.track.id}`} controls={true} ref={hlsPlayerRef} className="w-screen h-screen fixed left-0 top-0" onEnded={() => {
+                <HLSPlayer manifest={`https://nicovrc.net/proxy?https://www.nicovideo.jp${playerState.track.id}`} controls={true} ref={hlsPlayerRef} autoPlay className="w-screen h-screen fixed left-0 top-0 bg-black" onEnded={() => {
                   onData(JSON.stringify({ type: 'NEXT', payload: null }))
                 }} onError={() => {
                   setPlayerState({
@@ -425,10 +644,29 @@ export function Monitor() {
                 </HLSPlayer>
               </div>
             }
+            {
+              playerState.track && playerState.track.type === 'remote' && <div>
+                <video src={playerState.track.id} crossOrigin="anonymous" controls={true} ref={htmlPlayerRef} autoPlay className="w-screen h-screen fixed left-0 top-0 bg-black" 
+                onEnded={() => {
+                  onData(JSON.stringify({ type: 'NEXT', payload: null }))
+                }} onError={() => {
+                  setPlayerState({
+                    ...playerState,
+                    state: 'idle',
+                    track: null
+                  });
+                  eventSender.mutate({
+                    roomId: room?.id,
+                    event: 'ERROR'
+                  })
+                  }}>
+                </video>
+              </div>
+            }
           </div>
         </main>}
       </Layout>
-      </>
+      </div>
   )
 }
 

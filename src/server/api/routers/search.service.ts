@@ -4,6 +4,16 @@ import * as cheerio from 'cheerio';
 import langdetect from 'langdetect';
 import { getRoomConfig } from './room.service';
 import type { Item, YoutubeSearchResponse } from '@uta/types/yt.types';
+import { db } from '@uta/server/db';
+
+const getRemoteUrl = (sourceName: string, songCode: string) => {
+    switch (sourceName) {
+        case 'KANY':
+            return `${process.env.KANY_MEDIA_URL}/${songCode}.mp4`
+        default:
+            return ''
+    }
+}
 
 const cleanText = (text: string) => text.replace(/[\n\t]/g, '').trim()
 export const getYoutubeLink = async (url: string) => { 
@@ -27,6 +37,7 @@ export const getYoutubeLink = async (url: string) => {
 }
 export const search = async (roomId: string, text: string) => { 
     const config = await getRoomConfig(roomId)
+    const allowRemote = Boolean(typeof config.allowSearchRemote === 'undefined' ? true : config.allowSearchRemote)
     const allowYoutube = Boolean(typeof config.allowSearchYoutube === 'undefined' ? true : config.allowSearchYoutube)
     const allowNiconico = Boolean(typeof config.allowSearchNiconico === 'undefined' ? true : config.allowSearchNiconico)
     let keyword = text
@@ -85,7 +96,8 @@ export const search = async (roomId: string, text: string) => {
         title: string
         id: string
         thumb: string
-        type: 'youtube' | 'niconico'
+        type: 'youtube' | 'niconico' | 'remote'
+        karaChannel: string
         description: string
         raw?: object
     }[] = []
@@ -107,6 +119,7 @@ export const search = async (roomId: string, text: string) => {
                         id: href,
                         thumb,
                         type: 'niconico',
+                        karaChannel: 'UNSUPORTED',
                         description: `${time}  •  ${length}`
                     })
                 }
@@ -127,6 +140,7 @@ export const search = async (roomId: string, text: string) => {
                     thumb: item.thumbnail.thumbnails[0]?.url ?? '',
                     type: 'youtube',
                     description: `${item.isLive ? '[LIVE] ' : ''}${item.channelTitle}  •  ${item.length.simpleText}`,
+                    karaChannel: 'UNSUPORTED',
                     raw: item
                 })
             }
@@ -151,5 +165,50 @@ export const search = async (roomId: string, text: string) => {
         // If neither `a` nor `b` have a keyword, keep the original order
         return 0;
     });
+    if(allowRemote) {
+        const remoteSongs = await db.remoteSongs.findMany({
+            take: 50,
+            where: {
+               OR: [
+                {
+                    title: {
+                        contains: text
+                    }
+                },
+                {
+                    artist: {
+                        contains: text
+                    }
+                },
+                {
+                    category: {
+                        contains: text
+                    }
+                },
+                {
+                    album: {
+                        contains: text
+                    }
+                }
+               ]
+            },
+        })
+        if(remoteSongs?.length) {
+            remoteSongs.forEach((song, i) => {
+                const s = {
+                    i: ++i,
+                    title: song.title + ' - ' + song.artist,
+                    id: getRemoteUrl(song.sourceName, song.songCode),
+                    thumb: '',
+                    type: 'remote' as const,
+                    description: `${song.artist}  •  ${song.category} •  ${song.type === 'TWO_CHANNEL_AUDIO' ? `Kara Support` : 'No Kara Support'}`,
+                    karaChannel: (!!song.karaChannel ? song.karaChannel : 'UNSUPORTED') as string,
+                    raw: song
+                }
+                songs.unshift(s)
+            }
+        )
+        }
+    }
     return config.searchSuffix !== 'off' ? sorted : songs
 }
